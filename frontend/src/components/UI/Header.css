@@ -1,0 +1,126 @@
+.header {
+    background-color: #1a1a2e;
+    color: #eee;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* center content, stack logo + nav */
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* logo row */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    justify-content: center;
+    text-align: center;
+}
+
+.logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(124,58,237,0.08);
+}
+
+.header .logo h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #00d4ff;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+/* nav centered beneath logo */
+.header nav {
+    width: 100%;
+}
+
+.header nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 1.25rem;
+    justify-content: center;
+    align-items: center;
+}
+
+/* link baseline */
+.header nav li a {
+    color: #e6eef8;
+    text-decoration: none;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.25rem;
+    position: relative;
+    font-weight: 600;
+    transition: color 0.22s ease, transform 0.12s ease;
+}
+
+/* animated underline using pseudo element */
+.header nav li a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 220ms cubic-bezier(.2,.9,.2,1);
+    border-radius: 3px;
+}
+
+/* hover & focus */
+.header nav li a:hover,
+.header nav li a:focus {
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.header nav li a:hover::after,
+.header nav li a:focus::after,
+.header nav li a:focus-visible::after {
+    transform: scaleX(1);
+}
+
+/* visible focus ring for keyboard users */
+.header nav li a:focus-visible {
+    outline: 3px solid rgba(124,58,237,0.16);
+    outline-offset: 6px;
+    border-radius: 6px;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+    .header {
+        padding: 0.75rem 1rem;
+    }
+
+    .header nav ul {
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .logo-img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .header .logo h1 {
+        font-size: 1.05rem;
+    }
+}
