@@ -46,7 +46,7 @@ app.config.update(
 db = SQLAlchemy(app)
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-
+# region login and txt
 # ----------------------------
 # Database Models
 # ----------------------------
@@ -230,6 +230,9 @@ def download_file(file_id):
 def init_db():
     db.create_all()
     print("SQLite DB initialized.")
+
+#endregion
+
 # Helper function to handle errors
 def handle_error(message, status_code=400):
     return jsonify({'error': message}), status_code
@@ -307,6 +310,15 @@ def summarize():
         
         # Generate summary
         summary = call_llm_api(text, num_words, words_limit=words_limit)
+
+        #save summary
+        user = current_user()
+        if not user:
+            return jsonify({"error": "Not logged in"}), 401
+        
+        timestamp = datetime().strftime("%Y%m%d%H%M%S")
+        filename = f"summary_{timestamp}.txt"
+        save_text_for_user(user.id, filename, summary)
         
         return jsonify({
             'status': 'success',
