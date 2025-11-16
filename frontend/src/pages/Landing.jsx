@@ -49,7 +49,7 @@ export default function Landing() {
                     </ul>
 
                     <div className="game-cta-row">
-                        <Link to="/game" className="cta-button secondary">Try the Game Demo</Link>
+                        <Link to="/game" className="cta-button primary">Try the Game Demo</Link>
                         <Link to="/login" className="cta-button ghost">Sign in to play & save progress</Link>
                     </div>
                 </div>
