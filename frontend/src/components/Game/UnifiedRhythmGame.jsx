@@ -21,7 +21,7 @@ const generateBeatmapFromTempo = (bpm = 120, durationSeconds = 60) => {
 
     while (currentTime < durationSeconds * 1000) {
         beatmap.push({
-            id: `beat-${beatIndex}`,
+            id: `beat-${beatIndex}-${Math.round(currentTime)}`, // <- make id unique by time
             time: currentTime,
             position: positions[posIndex % 4],
             keyHint: ['D', 'F', 'J', 'K'][posIndex % 4],
@@ -87,6 +87,7 @@ const UnifiedRhythmGame = () => {
     const animationFrameRef = useRef(null);
 
     const [activeCircles, setActiveCircles] = useState([]);
+    const circleHistoryRef = useRef(new Set());
     const [circleHistory, setCircleHistory] = useState(new Set());
     const [feedbackItems, setFeedbackItems] = useState([]);
     const [hitCircles, setHitCircles] = useState(new Set());
