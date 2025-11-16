@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Rhythm Notes</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
+<body>
+<main>
+  <h1>Rhythm Notes</h1>
+
+  {% if user %}
+    <p>Signed in as <strong>{{ user.email }}</strong> ({{ user.name }})</p>
+    <button id="logoutBtn">Sign out</button>
+
+    <hr>
+    <h2>Your files</h2>
+    <p><a href="/files">View files</a></p>
+
+    <hr>
+    <h2>Generate example file (backend)</h2>
+    <p>Click to let the backend generate a sample text file and store it for your account.</p>
+    <button id="generateBtn">Generate Example</button>
+
+  {% else %}
+    <p>Please sign in with Google</p>
+
+    <div id="g_id_onload"
+         data-client_id="{{ google_client_id }}"
+         data-auto_prompt="false"
+         data-callback="handleCredentialResponse">
+    </div>
+
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline">
+    </div>
+  {% endif %}
+</main>
+
+<script src="/static/main.js"></script>
+</body>
+</html>
