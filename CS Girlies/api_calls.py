@@ -39,6 +39,31 @@ def get_file_info(file_bytes, content_type):
         info['pages'] = 1
     
     return info
+
+def make_flash_cards(texts, num_words, num_cards=10, batch_size=500):
+    """
+    Calls a Language Model API to process the extracted text.
+
+    Args:
+        texts (str): The text extracted from the image.
+    Returns:
+        str: The response from the Language Model API.
+    """
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    num_batches = (num_words // batch_size) + 1
+    summaries = ""
+    for i in range(num_batches):
+        words = " ".join(texts.split()[batch_size*i:batch_size*(i+1)])
+        prompt = f"Generate {num_cards/num_batches} flash cards for the following text, keeping as much detail as possible while being concise without using external information: {words}. Please "
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        response = model.generate_content(prompt)
+
+        print(response.text)
+
+
+        summaries += str(response.text) + "\n"
+    
+    return summaries
 def call_google_cloud_vision_api(file_bytes, content_type):
     """
     Calls the Google Cloud Vision API to extract text from images.
@@ -249,7 +274,7 @@ def beat_adjustment(tempo, beat_times, target_tempo=120.0):
         beat_times (np.ndarray): Array of original beat times (in seconds).
         target_tempo (float): The desired target tempo (BPM).
     Returns:
-        np.ndarray: Array of adjusted beat times (in seconds).
+        tuple: (adjusted_beat_times, speed_factor)
     """
     # Ensure tempo is a float
     tempo = float(tempo) if isinstance(tempo, np.ndarray) else tempo
@@ -264,22 +289,74 @@ def beat_adjustment(tempo, beat_times, target_tempo=120.0):
     
     if min_diff == diff_original:
         # Case 1: Target is closest to original tempo
-        adjustment_factor = target_tempo / tempo
-        adjusted_beat_times = beat_times * adjustment_factor
+        # speed_factor < 1 means slow down, > 1 means speed up
+        speed_factor = target_tempo / tempo
+        # When slowing down (speed_factor < 1), beat times get stretched (multiplied by > 1)
+        # When speeding up (speed_factor > 1), beat times get compressed (multiplied by < 1)
+        adjusted_beat_times = beat_times * (tempo / target_tempo)
     elif min_diff == diff_half:
-        # Case 2: Target is closest to half tempo
-        adjustment_factor = target_tempo / (tempo / 2)
-        adjusted_beat_times = beat_times * adjustment_factor
-        # Remove every other beat time
-        adjusted_beat_times = adjusted_beat_times[::2]
+        # Case 2: Target is closest to half tempo (remove every other beat)
+        effective_tempo = tempo / 2
+        speed_factor = target_tempo / effective_tempo
+        adjusted_beat_times = beat_times[::2] * (effective_tempo / target_tempo)
     else:
-        # Case 3: Target is closest to double tempo
-        adjustment_factor = target_tempo / (tempo * 2)
-        adjusted_beat_times = beat_times * adjustment_factor
+        # Case 3: Target is closest to double tempo (insert beats between existing beats)
+        effective_tempo = tempo * 2
+        speed_factor = target_tempo / effective_tempo
+        # Create new beat times by inserting midpoints between consecutive beats
+        new_beats = []
+        for i in range(len(beat_times) - 1):
+            new_beats.append(beat_times[i])
+            # Insert midpoint between current and next beat
+            new_beats.append((beat_times[i] + beat_times[i + 1]) / 2)
+        new_beats.append(beat_times[-1])  # Add the last beat
+        adjusted_beat_times = np.array(new_beats) * (effective_tempo / target_tempo)
+            
+    return adjusted_beat_times, speed_factor
+
+
+def generate_beat_audio(beat_times, output_path, duration=30.0, sample_rate=44100):
+    """
+    Generate an audio file with click sounds at specified beat times.
+    
+    Args:
+        beat_times (np.ndarray): Array of beat times in seconds
+        output_path (str): Path to save the output audio file
+        duration (float): Total duration of the output audio in seconds
+        sample_rate (int): Sample rate of the output audio
         
-    return adjusted_beat_times, adjustment_factor
-
-
+    Returns:
+        str: Path to the generated audio file
+    """
+    from pydub import AudioSegment
+    from pydub.generators import Sine
+    import numpy as np
+    
+    # Create a silent audio segment
+    audio = AudioSegment.silent(duration=duration * 1000)  # pydub works in milliseconds
+    
+    # Generate a louder click sound (5ms of 1000Hz sine wave at 0dBFS)
+    click_duration = 5  # milliseconds
+    click = Sine(1000).to_audio_segment(duration=click_duration).apply_gain(0)  # 0dBFS (maximum volume)
+    
+    # Add a short fade to the click to prevent clicks in the audio
+    click = click.fade_out(1).fade_in(1)
+    
+    # Add clicks at each beat time
+    for beat_time in beat_times:
+        if beat_time <= duration:
+            # Add click at the beat time (converted to milliseconds)
+            position = int(beat_time * 1000)
+            audio = audio.overlay(click, position=position)
+    
+    # Add a short fade in/out to prevent clicks at start/end
+    audio = audio.fade_in(10).fade_out(10)
+    
+    # Export as WAV with higher volume (normalize to -1dBFS)
+    audio = audio.normalize(headroom=1)
+    audio.export(output_path, format='wav', parameters=["-ac", "2"])  # Force stereo output
+    
+    return output_path
 
 def test_google_cloud_vision():
     """Test Google Cloud Vision API with image and PDF files"""
@@ -504,9 +581,100 @@ def test_complete_workflow():
 
 
 def main():
-    """Main test menu"""
-    print("\n" + "="*60)
-    print("DOCUMENT PROCESSING & AUDIO ANALYSIS TEST SUITE")
+    """Main function to test beat detection with original and adjusted audio"""
+    import os
+    from pydub import AudioSegment
+    from app import change_audio_speed_pydub
+    
+    # Set FFmpeg path
+    os.environ['PATH'] = r'C:\Users\Syuen\GROUP\rhythm-notes\CS Girlies\ffmpeg\ffmpeg-8.0-essentials_build\bin;' + os.environ['PATH']
+    
+    # Get input file path
+    audio_path = input("Enter path to MP3 file: ").strip()
+    if not os.path.exists(audio_path):
+        print(f"Error: File not found: {audio_path}")
+        return
+    
+    try:
+        # Load the MP3 file
+        print(f"Loading {audio_path}...")
+        with open(audio_path, 'rb') as f:
+            mp3_bytes = f.read()
+        
+        # Detect original beats
+        print("Detecting original beats...")
+        original_tempo, original_beats = wav_beat_tracking_from_bytes(mp3_bytes)
+        
+        # Get target tempo from user
+        target_tempo = float(input(f"\nOriginal Tempo: {original_tempo:.1f} BPM\nEnter target tempo (or press Enter to keep original): ") or original_tempo)
+        
+        # Calculate speed factor (inverse of tempo ratio to get the correct speed change)
+        speed_factor = original_tempo / target_tempo
+        
+        # Adjust beats to target tempo
+        print(f"\nAdjusting beats to {target_tempo} BPM (speed factor: {speed_factor:.2f}x)...")
+        adjusted_beats, adjustment_factor = beat_adjustment(original_tempo, original_beats, target_tempo)
+        
+        # Generate verification audio for both
+        print("\nGenerating verification audio files...")
+        base_name = os.path.splitext(os.path.basename(audio_path))[0]
+        output_dir = os.path.dirname(os.path.abspath(audio_path)) or '.'
+        
+        # Original beats
+        orig_output = os.path.join(output_dir, f"{base_name}_original_beats.wav")
+        generate_beat_audio(original_beats, orig_output, duration=30.0)
+        
+        # Adjusted beats
+        adj_output = os.path.join(output_dir, f"{base_name}_adjusted_{target_tempo:.0f}bpm.wav")
+        generate_beat_audio(adjusted_beats, adj_output, duration=30.0)
+        
+        # Generate adjusted audio file
+        print("\nGenerating adjusted audio file...")
+        adjusted_audio_bytes = change_audio_speed_pydub(mp3_bytes, speed_factor)
+        adjusted_audio_path = os.path.join(output_dir, f"{base_name}_adjusted_{target_tempo:.0f}bpm.mp3")
+        with open(adjusted_audio_path, 'wb') as f:
+            f.write(adjusted_audio_bytes)
+        
+        print(f"\nFiles created:")
+        print(f"- Original beats: {os.path.abspath(orig_output)}")
+        print(f"- Adjusted beats: {os.path.abspath(adj_output)}")
+        print(f"- Adjusted audio: {os.path.abspath(adjusted_audio_path)}")
+        print("\nListen to the files to compare the beat detection and adjustment.")
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+
+"""
+Main test menu
+
+print("\n" + "="*60)
+print("DOCUMENT PROCESSING & AUDIO ANALYSIS TEST SUITE")
+print("="*60)
+
+while True:
+    print("\n\nSelect test to run:")
+    print("1. Test Google Cloud Vision API (Image/PDF text extraction)")
+    print("2. Test LLM Summarization")
+    print("3. Test YouTube Audio Streaming")
+    print("4. Test Beat Tracking")
+    print("5. Test Complete Workflow (Document -> Text -> Summary)")
+    print("6. Run All Tests")
+    print("0. Exit")
+
+    choice = input("\nEnter choice (0-6): ").strip()
+
+    if choice == '1':
+        test_google_cloud_vision()
+    elif choice == '2':
+        test_llm_summarization()
+    elif choice == '3':
+        mp3_bytes = test_audio_streaming()
+        if mp3_bytes:
+            use_for_beats = input("\nUse this audio for beat tracking? (y/n): ").strip().lower()
+            if use_for_beats == 'y':
     print("="*60)
     
     while True:
@@ -548,7 +716,7 @@ def main():
             break
         else:
             print("\nInvalid choice. Please try again.")
-
+    """
 
 if __name__ == "__main__":
     # Check environment setup

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, make_response
+from flask import Flask, request, jsonify, send_file, make_response, url_for
 from werkzeug.utils import secure_filename
 import os
 import io
@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import logging
 import numpy as np
 from pydub import AudioSegment
+import json
 from api_calls import (
     call_google_cloud_vision_api,
     call_llm_api,
@@ -157,57 +158,81 @@ def get_audio():
 @app.route('/api/audio/analyze', methods=['POST'])
 def analyze_audio():
     """
-    Analyze audio beats and tempo
+    Analyze audio file for beats and tempo, with optional audio adjustment
     ---
     parameters:
       - name: file
         in: formData
         type: file
         required: true
-        description: Audio file to analyze (MP3)
+        description: Audio file to analyze
       - name: target_tempo
         in: formData
         type: number
+        format: float
         required: false
-        default: 120.0
-        description: Target tempo for beat adjustment
+        description: Optional target tempo in BPM. If provided, returns adjusted audio.
     responses:
       200:
-        description: Analysis results
+        description: Audio analysis results and optionally adjusted audio
       400:
-        description: Invalid file or error processing
+        description: Invalid input
     """
-    if 'file' not in request.files:
-        return handle_error('No file provided')
-    
-    file = request.files['file']
-    if file.filename == '':
-        return handle_error('No selected file')
-    
     try:
-        target_tempo = float(request.form.get('target_tempo', 120.0))
-        mp3_bytes = file.read()
+        os.environ['PATH'] = r'C:\Users\Syuen\GROUP\rhythm-notes\CS Girlies\ffmpeg\ffmpeg-8.0-essentials_build\bin;' + os.environ['PATH']
+        if 'file' not in request.files:
+            return handle_error('No file provided')
+            
+        audio_file = request.files['file']
+        target_tempo = request.form.get('target_tempo', type=float)
         
-        # Analyze beats
-        tempo, beat_times = wav_beat_tracking_from_bytes(mp3_bytes)
+        # Read the audio file
+        audio_bytes = audio_file.read()
         
-        # Adjust beats to target tempo
-        adjusted_beats = beat_adjustment(tempo, beat_times, target_tempo)
+        # Perform beat tracking
+        original_tempo, beat_times = wav_beat_tracking_from_bytes(audio_bytes)
         
         # Calculate beat intervals
-        beat_intervals = []
-        if len(adjusted_beats) > 1:
-            beat_intervals = np.diff(adjusted_beats).tolist()
+        beat_intervals = np.diff(beat_times).tolist() if len(beat_times) > 1 else []
         
-        return jsonify({
+        result = {
             'status': 'success',
-            'original_tempo': float(tempo),
-            'target_tempo': target_tempo,
-            'beat_count': len(adjusted_beats),
-            'beat_times': adjusted_beats.tolist(),
+            'original_tempo': float(original_tempo),
+            'beat_count': len(beat_times),
+            'beat_times': beat_times.tolist(),
             'beat_intervals': beat_intervals,
-            'duration': float(adjusted_beats[-1]) if len(adjusted_beats) > 0 else 0
-        })
+            'duration': float(beat_times[-1]) if len(beat_times) > 0 else 0
+        }
+        
+        # If target tempo is provided, adjust the audio and include it in the response
+        if target_tempo:
+            # Adjust beats to target tempo
+            adjusted_beats, speed_factor = beat_adjustment(original_tempo, beat_times, target_tempo)
+            
+            # Adjust the audio
+            adjusted_audio = change_audio_speed_pydub(audio_bytes, speed_factor)
+            
+            result = {
+                'status': 'success',
+                'original_tempo': float(original_tempo),
+                'beat_count': len(beat_times),
+                'beat_times': adjusted_beats.tolist(),
+                'beat_intervals': beat_intervals,
+                'duration': float(beat_times[-1]) if len(beat_times) > 0 else 0
+            }
+            # Create a response with the adjusted audio
+            response = make_response(adjusted_audio)
+            response.headers['Content-Type'] = 'audio/mp3'
+            response.headers['Content-Disposition'] = f'attachment; filename=adjusted_{target_tempo:.0f}bpm.mp3'
+            
+            # Add analysis to the response headers
+            for key, value in result.items():
+                if isinstance(value, (str, int, float)):
+                    response.headers[f'X-Audio-{key.replace("_", "-")}'] = str(value)
+            
+            return response
+        
+        return jsonify(result)
         
     except Exception as e:
         logger.error(f"Error analyzing audio: {str(e)}")
@@ -274,7 +299,7 @@ def change_audio_speed_pydub(mp3_bytes, speed_factor=1.0):
     
     Args:
         mp3_bytes (bytes): MP3 audio data
-        speed_factor (float): Speed multiplier (0.5 = half speed, 2.0 = double speed)
+        speed_factor (float): Speed multiplier (0.5 = half speed/slower, 2.0 = double speed/faster)
     
     Returns:
         bytes: Modified MP3 audio data
@@ -282,8 +307,11 @@ def change_audio_speed_pydub(mp3_bytes, speed_factor=1.0):
     # Load audio from bytes
     audio = AudioSegment.from_file(io.BytesIO(mp3_bytes), format="mp3")
     
-    # Method 1: Change speed WITHOUT pitch change (time stretching)
-    # This maintains the original pitch
+    # Change speed WITHOUT pitch change (time stretching)
+    # To SLOW DOWN (speed_factor < 1): INCREASE frame rate, then convert back
+    # To SPEED UP (speed_factor > 1): DECREASE frame rate, then convert back
+    
+    # CORRECTED: Divide by speed_factor (not multiply)
     sound_with_altered_frame_rate = audio._spawn(
         audio.raw_data, 
         overrides={"frame_rate": int(audio.frame_rate * speed_factor)}
@@ -339,6 +367,49 @@ def adjust_audio_speed():
         logger.error(f"Error processing audio: {str(e)}")
         return jsonify({'error': f'Error processing audio: {str(e)}'}), 500
 
+@app.route('/api/audio/process-youtube', methods=['POST'])
+def process_youtube_audio():
+    try:
+        data = request.get_json()
+        youtube_url = data.get('url')
+        target_tempo = float(data.get('target_tempo', 120))
+        
+        if not youtube_url:
+            return handle_error('YouTube URL is required', 400)
+            
+        if not 40 <= target_tempo <= 240:
+            return handle_error('Target tempo must be between 40 and 240 BPM', 400)
+
+        # Download audio from YouTube
+        mp3_bytes = stream_audio(youtube_url)
+        if not mp3_bytes:
+            return handle_error('Failed to download audio from YouTube', 500)
+
+        # Detect beats and get original tempo
+        original_tempo, beat_times = wav_beat_tracking_from_bytes(mp3_bytes)
+        
+        # Adjust beats to target tempo
+        adjusted_beats, speed_factor = beat_adjustment(original_tempo, beat_times, target_tempo)
+        
+        # Adjust audio speed
+        adjusted_audio = change_audio_speed_pydub(mp3_bytes, speed_factor)
+        
+        # Create a response with the audio data
+        response = make_response(adjusted_audio)
+        response.headers['Content-Type'] = 'audio/mp3'
+        response.headers['Content-Disposition'] = f'attachment; filename=adjusted_audio_{target_tempo}bpm.mp3'
+        response.headers['X-Original-Tempo'] = str(original_tempo)
+        response.headers['X-Adjusted-Tempo'] = str(target_tempo)
+        response.headers['X-Speed-Factor'] = str(speed_factor)
+        response.headers['X-Beat-Times'] = json.dumps(
+            adjusted_beats.tolist() if hasattr(adjusted_beats, 'tolist') else adjusted_beats
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error processing YouTube audio: {str(e)}")
+        return handle_error(f'Error processing audio: {str(e)}', 500)
 
 
 @app.route('/')
@@ -346,14 +417,72 @@ def index():
     """API documentation"""
     return '''
     <h1>Document and Audio Processing API</h1>
-    <h2>Endpoints:</h2>
+    <h2>Document Processing Endpoints:</h2>
     <ul>
-        <li><strong>POST /api/extract-text</strong> - Extract text from image/PDF</li>
-        <li><strong>POST /api/summarize</strong> - Generate text summary</li>
-        <li><strong>GET /api/audio/stream?url=YOUTUBE_URL</strong> - Stream audio from YouTube</li>
-        <li><strong>POST /api/audio/analyze</strong> - Analyze audio beats and tempo</li>
-        <li><strong>POST /api/process-document</strong> - Complete document processing (extract + summarize)</li>
+        <li><strong>POST /api/extract-text</strong> - Extract text from image/PDF
+            <ul>
+                <li>Form Data: file (required) - The image or PDF file</li>
+            </ul>
+        </li>
+        <li><strong>POST /api/summarize</strong> - Generate text summary
+            <ul>
+                <li>Form Data: text (required) - Text to summarize, words_limit (optional) - Max words in summary (default: 100)</li>
+            </ul>
+        </li>
+        <li><strong>POST /api/process-document</strong> - Complete document processing (extract + summarize)
+            <ul>
+                <li>Form Data: file (required) - The image or PDF file, words_limit (optional) - Max words in summary</li>
+            </ul>
+        </li>
     </ul>
+    
+    <h2>Audio Processing Endpoints:</h2>
+    <ul>
+        <li><strong>GET /api/audio/stream</strong> - Stream audio from YouTube
+            <ul>
+                <li>Query Params: url (required) - YouTube URL</li>
+            </ul>
+        </li>
+        <li><strong>POST /api/audio/analyze</strong> - Analyze audio beats and tempo
+            <ul>
+                <li>Form Data: file (required) - Audio file (MP3), target_tempo (optional) - Desired BPM (default: 120.0)</li>
+            </ul>
+        </li>
+        <li><strong>POST /api/audio/adjust-speed</strong> - Adjust audio speed
+            <ul>
+                <li>Form Data: audio (required) - Audio file (MP3), speed (optional) - Speed factor (0.5-2.0, default: 1.0)</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h2>Beat Tracking Endpoints:</h2>
+    <ul>
+        <li><strong>POST /api/audio/detect-beats</strong> - Detect beats in audio
+            <ul>
+                <li>Form Data: file (required) - Audio file (MP3)</li>
+            </ul>
+        </li>
+        <li><strong>POST /api/audio/adjust-beats</strong> - Adjust audio beats to target tempo
+            <ul>
+                <li>Form Data: file (required) - Audio file (MP3), target_tempo (required) - Desired BPM</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h2>Example Usage:</h2>
+    <pre>
+    # Extract text from document
+    curl -X POST -F "file=@document.pdf" http://localhost:5000/api/extract-text
+    
+    # Analyze audio beats
+    curl -X POST -F "file=@audio.mp3" -F "target_tempo=120" http://localhost:5000/api/audio/analyze
+    
+    # Adjust audio speed
+    curl -X POST -F "audio=@song.mp3" -F "speed=1.2" http://localhost:5000/api/audio/adjust-speed --output faster_song.mp3
+    
+    # Stream audio from YouTube
+    curl "http://localhost:5000/api/audio/stream?url=https://www.youtube.com/watch?v=..." --output audio.mp3
+    </pre>
     '''
 
 if __name__ == '__main__':
