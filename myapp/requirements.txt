@@ -3,3 +3,7 @@ Flask_SQLAlchemy==3.0.3
 python-dotenv==1.0.0
 google-auth==2.23.0
 requests
+
+npm install
+npm install react-router-dom
+npm run dev
