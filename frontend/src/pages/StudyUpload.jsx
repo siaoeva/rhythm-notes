@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadStudyMaterial } from '../services/api'; // Your API service
 import './StudyUpload.css';
 
 const StudyUpload = () => {
@@ -12,89 +13,233 @@ const StudyUpload = () => {
     const [uploadedItems, setUploadedItems] = useState([]);
     const [summary, setSummary] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [extractedText, setExtractedText] = useState('');
+    const [processingStatus, setProcessingStatus] = useState('');
 
     const handleFileSelect = (e) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
             setFile(selectedFile);
-            procesUpload(selectedFile.name);
+            setError(null);
         }
     };
 
-    const procesUpload = (fileName) => {
+    const processUpload = async () => {
         if (!title.trim()) {
             alert('Please enter a title for your notes');
             return;
         }
 
+        if (!file) {
+            alert('Please select a file');
+            return;
+        }
+
         setIsLoading(true);
-        // Simulate backend AI summary generation
-        setTimeout(() => {
-            const newItem = {
-                id: uploadedItems.length + 1,
-                title: title,
-                type: file?.name?.split('.')?.pop() || 'txt',
-                date: new Date().toLocaleDateString(),
-                icon: '📄'
-            };
-            setUploadedItems([newItem, ...uploadedItems]);
+        setError(null);
+        setProcessingStatus('Uploading file...');
 
-            // Placeholder AI summary from backend
-            setSummary({
-                title: title,
-                keyPoints: [
-                    'Core concepts and fundamentals covered',
-                    'Important definitions and terminology',
-                    'Key equations and formulas',
-                    'Main takeaways and applications'
-                ],
-                wordCount: 1250,
-                estimatedReadTime: '5-7 min'
-            });
+        try {
+            setProcessingStatus('Extracting text from document...');
+            
+            // Call the backend API
+            const response = await uploadStudyMaterial(file, 100);
 
+            // Debug: Log the full response
+            console.log('📥 Backend response:', response);
+            console.log('📥 Response status:', response.status);
+            console.log('📥 Response text length:', response.text?.length || 0);
+            console.log('📥 Response summary length:', response.summary?.length || 0);
+            console.log('📥 Response words:', response.words);
+
+            setProcessingStatus('Generating summary...');
+
+            // Check if we have valid data (with or without status field)
+            if (response && (response.text || response.summary)) {
+                // Create new item with actual data
+                const newItem = {
+                    id: uploadedItems.length + 1,
+                    title: title,
+                    type: file.name.split('.').pop() || 'file',
+                    date: new Date().toLocaleDateString(),
+                    icon: getFileIcon(file.name),
+                    extractedText: response.text || '',
+                    summary: response.summary || ''
+                };
+                
+                setUploadedItems([newItem, ...uploadedItems]);
+                setExtractedText(response.text || '');
+
+                // Always set summary if we have either summary or text
+                const summaryContent = response.summary || response.text;
+                const keyPoints = extractKeyPoints(summaryContent);
+                
+                console.log('✅ Setting summary state:', {
+                    title,
+                    content: summaryContent,
+                    keyPointsLength: keyPoints.length,
+                    wordCount: response.words,
+                    characterCount: response.characters
+                });
+                
+                setSummary({
+                    title: title,
+                    content: summaryContent,
+                    keyPoints: keyPoints.length > 0 ? keyPoints : [summaryContent],
+                    wordCount: response.words || (response.text ? response.text.split(' ').length : 0),
+                    characterCount: response.characters || (response.text ? response.text.length : 0),
+                    estimatedReadTime: calculateReadTime(response.words || (response.text ? response.text.split(' ').length : 0))
+                });
+                
+                console.log('✅ Summary state set successfully');
+
+                // Reset form
+                setFile(null);
+                setTitle('');
+                setActiveTab('upload');
+                
+                console.log('✅ Upload successful!');
+            } else {
+                throw new Error('No data received from server');
+            }
+        } catch (err) {
+            console.error('❌ Upload error:', err);
+            console.error('❌ Error details:', JSON.stringify(err, null, 2));
+            
+            const errorMessage = err?.error || err?.message || 'Failed to process document. Please try again.';
+            setError(errorMessage);
+            setProcessingStatus('');
+        } finally {
             setIsLoading(false);
-            setFile(null);
-            setTitle('');
-            setTextContent('');
-            setActiveTab('upload');
-        }, 1200);
+            setProcessingStatus('');
+        }
     };
 
-    const handleTextSubmit = () => {
+    const handleTextSubmit = async () => {
         if (!title.trim() || !textContent.trim()) {
             alert('Please enter both title and text content');
             return;
         }
 
         setIsLoading(true);
-        setTimeout(() => {
-            const newItem = {
-                id: uploadedItems.length + 1,
-                title: title,
-                type: 'text',
-                date: new Date().toLocaleDateString(),
-                icon: '📝'
-            };
-            setUploadedItems([newItem, ...uploadedItems]);
+        setError(null);
+        setProcessingStatus('Processing text...');
 
-            setSummary({
-                title: title,
-                keyPoints: [
-                    'Main concepts extracted from your text',
-                    'Important points highlighted by AI',
-                    'Related topics and connections',
-                    'Recommended study areas'
-                ],
-                wordCount: textContent.split(' ').length,
-                estimatedReadTime: '3-5 min'
-            });
+        try {
+            // Create a text file from the content
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const textFile = new File([blob], `${title}.txt`, { type: 'text/plain' });
 
+            // Call the backend API
+            const response = await uploadStudyMaterial(textFile, 100);
+
+            if (response.status === 'success') {
+                const newItem = {
+                    id: uploadedItems.length + 1,
+                    title: title,
+                    type: 'text',
+                    date: new Date().toLocaleDateString(),
+                    icon: '📝',
+                    extractedText: response.text,
+                    summary: response.summary
+                };
+                
+                setUploadedItems([newItem, ...uploadedItems]);
+
+                if (response.summary) {
+                    setSummary({
+                        title: title,
+                        content: response.summary,
+                        keyPoints: extractKeyPoints(response.summary),
+                        wordCount: response.words,
+                        characterCount: response.characters,
+                        estimatedReadTime: calculateReadTime(response.words)
+                    });
+                } else {
+                    setSummary({
+                        title: title,
+                        content: response.text,
+                        keyPoints: ['Text is too short to generate a summary'],
+                        wordCount: response.words,
+                        characterCount: response.characters,
+                        estimatedReadTime: calculateReadTime(response.words)
+                    });
+                }
+
+                setTitle('');
+                setTextContent('');
+                setActiveTab('text');
+            }
+        } catch (err) {
+            console.error('Text processing error:', err);
+            setError(err.error || 'Failed to process text. Please try again.');
+            setProcessingStatus('');
+        } finally {
             setIsLoading(false);
-            setTitle('');
-            setTextContent('');
-            setActiveTab('text');
-        }, 1200);
+            setProcessingStatus('');
+        }
     };
+
+    // Helper function to get file icon
+    const getFileIcon = (filename) => {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            pdf: '📄',
+            png: '🖼️',
+            jpg: '🖼️',
+            jpeg: '🖼️',
+            gif: '🖼️',
+            txt: '📝'
+        };
+        return iconMap[ext] || '📄';
+    };
+
+    // Helper function to extract key points from summary
+    const extractKeyPoints = (summaryText) => {
+        if (!summaryText || summaryText.trim().length === 0) {
+            return ['No summary available'];
+        }
+        
+        // Split by sentences (., !, ?)
+        const sentences = summaryText
+            .split(/[.!?]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 15); // Filter out very short fragments
+        
+        // If we have good sentences, return them
+        if (sentences.length > 0) {
+            return sentences.slice(0, 5); // Take first 5 sentences as key points
+        }
+        
+        // If no good sentences, split by newlines or commas
+        const lines = summaryText
+            .split(/[\n,]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 10);
+        
+        if (lines.length > 0) {
+            return lines.slice(0, 5);
+        }
+        
+        // Last resort: return the whole text as one point
+        return [summaryText];
+    };
+
+    // Helper function to calculate read time
+    const calculateReadTime = (wordCount) => {
+        const avgWordsPerMinute = 200;
+        const minutes = Math.ceil(wordCount / avgWordsPerMinute);
+        
+        if (minutes < 1) return '< 1 min';
+        if (minutes === 1) return '1 min';
+        return `${minutes} min`;
+    };
+
+    // Debug: Log summary state whenever it changes
+    React.useEffect(() => {
+        console.log('🔍 Summary state changed:', summary);
+    }, [summary]);
 
     return (
         <div className="study-upload">
@@ -105,6 +250,13 @@ const StudyUpload = () => {
                     <p className="subtitle">Add PDFs, images, or text notes</p>
                 </div>
             </div>
+
+            {error && (
+                <div className="error-banner">
+                    <span>⚠️ {error}</span>
+                    <button onClick={() => setError(null)}>✕</button>
+                </div>
+            )}
 
             <div className="upload-container">
                 <div className="tabs">
@@ -158,10 +310,10 @@ const StudyUpload = () => {
                                             <span>✓ {file.name}</span>
                                             <button 
                                                 className="upload-submit-btn"
-                                                onClick={() => procesUpload(file.name)}
+                                                onClick={processUpload}
                                                 disabled={isLoading}
                                             >
-                                                {isLoading ? 'Processing...' : 'Upload & Summarize'}
+                                                {isLoading ? processingStatus || 'Processing...' : 'Upload & Summarize'}
                                             </button>
                                         </div>
                                     )}
@@ -194,7 +346,7 @@ const StudyUpload = () => {
                                     onClick={handleTextSubmit}
                                     disabled={isLoading}
                                 >
-                                    {isLoading ? 'Processing...' : 'Process & Summarize'}
+                                    {isLoading ? processingStatus || 'Processing...' : 'Process & Summarize'}
                                 </button>
                             </div>
                         )}
@@ -221,27 +373,55 @@ const StudyUpload = () => {
                     </aside>
                 </div>
 
-                {summary && (
+                {summary ? (
                     <div className="summary-section">
                         <div className="summary-header">
                             <h3>📊 AI Summary</h3>
-                            <span className="summary-meta">{summary.wordCount} words • {summary.estimatedReadTime}</span>
+                            <span className="summary-meta">
+                                {summary.wordCount} words • {summary.characterCount} chars • {summary.estimatedReadTime}
+                            </span>
                         </div>
                         <div className="summary-content">
                             <h4>{summary.title}</h4>
-                            <div className="key-points">
-                                {summary.keyPoints.map((point, idx) => (
-                                    <div key={idx} className="key-point">
-                                        <span className="point-bullet">•</span>
-                                        <span>{point}</span>
+                            
+                            {summary.content && summary.content !== summary.title && (
+                                <div className="summary-text">
+                                    <h5>Summary:</h5>
+                                    <p>{summary.content}</p>
+                                </div>
+                            )}
+                            
+                            {extractedText && extractedText !== summary.content && (
+                                <div className="extracted-text-section">
+                                    <h5>Extracted Text Preview:</h5>
+                                    <div className="extracted-text">
+                                        {extractedText.substring(0, 300)}
+                                        {extractedText.length > 300 && '...'}
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            )}
+                            
+                            {summary.keyPoints && summary.keyPoints.length > 0 && (
+                                <div className="key-points">
+                                    <h5>Key Points:</h5>
+                                    {summary.keyPoints.map((point, idx) => (
+                                        <div key={idx} className="key-point">
+                                            <span className="point-bullet">•</span>
+                                            <span>{point}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
                             <div className="summary-actions">
                                 <button className="action-btn secondary">📥 Download as PDF</button>
                                 <button className="action-btn primary">🃏 Generate Flashcards</button>
                             </div>
                         </div>
+                    </div>
+                ) : (
+                    <div style={{padding: '20px', background: '#f0f0f0', margin: '20px 0', borderRadius: '8px'}}>
+                        <p>No summary data available. Summary state: {JSON.stringify(summary)}</p>
                     </div>
                 )}
             </div>

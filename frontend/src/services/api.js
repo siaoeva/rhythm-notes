@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Change this to your backend URL
+const API_BASE_URL = 'http://127.0.0.1:5000'; // Change this to your backend URL
 
 // Function to register a new user
 export const registerUser = async (userData) => {
@@ -23,16 +23,21 @@ export const loginUser = async (credentials) => {
 };
 
 // Function to upload study materials
-export const uploadStudyMaterial = async (formData) => {
+export const uploadStudyMaterial = async (file, wordsLimit = 100) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/uploads`, formData, {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('words_limit', wordsLimit);
+
+        const response = await axios.post(`${API_BASE_URL}/api/process-document`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
         return response.data;
     } catch (error) {
-        throw error.response.data;
+        console.error('Upload error:', error);
+        throw error.response?.data || { error: 'Failed to upload file' };
     }
 };
 

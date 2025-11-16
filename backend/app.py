@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_file, make_response, url_for
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 import io
@@ -25,6 +26,7 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp()
 
@@ -277,14 +279,12 @@ def process_document():
         extracted_text = call_google_cloud_vision_api(file_bytes, content_type)
         
         # Generate summary if text is long enough
-        summary = None
-        if len(extracted_text.split()) > 50:
-            summary = call_llm_api(extracted_text, len(extracted_text.split()), words_limit=words_limit)
+        summary = call_llm_api(extracted_text, len(extracted_text.split()), words_limit=words_limit)
         
         return jsonify({
             'status': 'success',
-            'text': extracted_text,
-            'summary': summary,
+            'text': str(extracted_text),
+            'summary': str(summary),
             'characters': len(extracted_text),
             'words': len(extracted_text.split())
         })
