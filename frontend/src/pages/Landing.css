@@ -264,4 +264,12 @@
     .game-right {
         order: -1;
     }
+
+    .features {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(220px, 1fr));
+    gap: 1.2rem;
+    padding: 0 1rem;
+}
+
 }

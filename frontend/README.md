@@ -199,22 +199,14 @@ Make sure you have the following installed on your system:
 
 ---
 
-## Contributing
-
-We welcome contributions to improve this project! If you'd like to contribute, follow these steps:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature`).
-3. Make your changes and commit them (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Create a pull request with a description of your changes.
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 Thank you for checking out the **Smart Note Summarizer & Organizer**! We hope you find it helpful and fun to use as you study!
+
+---
+## Changes
+Frontend changes to make:
+Add proper game animations
+Improve the gacha section (i dont know much about gacha :pensive:)
+Add collaboration page
+Remove header from landing and auth pages
+Improve styling on notes page
+Make gacha tab, notes page mobile responsive
