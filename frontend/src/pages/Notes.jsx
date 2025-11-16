@@ -161,29 +161,7 @@ const Notes = () => {
           )}
         </main>
 
-        <aside className="notes-right">
-          {showSummarizer && (
-            <div className="summarizer-card">
-              <Summarizer />
-            </div>
-          )}
-
-          <div className="study-tools">
-            <h4>Study Tools</h4>
-            <button className="tool-btn" onClick={() => alert('Export to Quiz placeholder')}>Export to Quiz</button>
-            <button className="tool-btn" onClick={() => alert('Schedule review placeholder')}>Schedule Review</button>
-            <button className="tool-btn" onClick={() => alert('Share placeholder')}>Share Note</button>
-          </div>
-
-          <div className="recent-activity">
-            <h4>Recent Uploads</h4>
-            <ul>
-              {notes.slice(0,4).map(n => (
-                <li key={n.id}><strong>{n.title}</strong> <span className="muted">· {n.date}</span></li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+        
       </div>
 
        {showFlashModal && flashcards && (

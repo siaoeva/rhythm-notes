@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './UnifiedRhythmGame.css';
+import RhythmNote from './osu/RhythmNote';
 
 const PLACEHOLDER_TEXTS = [
     'Proteins are polypeptides folded into 3D shapes that perform biological functions. The twenty amino acids combine through peptide bonds to create unique structures.',
@@ -9,7 +10,7 @@ const PLACEHOLDER_TEXTS = [
     'Machine learning models learn patterns from training data to make predictions. Neural networks stack layers of interconnected neurons processing information.'
 ];
 
-// Generate beatmap based on BPM - with unique keys
+// Generate beatmap based on BPM
 const generateBeatmapFromTempo = (bpm = 120, durationSeconds = 60) => {
     const beatmap = [];
     const beatDuration = (60 / bpm) * 1000;
@@ -20,10 +21,11 @@ const generateBeatmapFromTempo = (bpm = 120, durationSeconds = 60) => {
 
     while (currentTime < durationSeconds * 1000) {
         beatmap.push({
-            id: `beat-${beatIndex}-${currentTime}`, // Unique ID
+            id: `beat-${beatIndex}`,
             time: currentTime,
             position: positions[posIndex % 4],
             keyHint: ['D', 'F', 'J', 'K'][posIndex % 4],
+            posIndex: posIndex % 4,
         });
         currentTime += beatDuration;
         posIndex++;
@@ -31,67 +33,6 @@ const generateBeatmapFromTempo = (bpm = 120, durationSeconds = 60) => {
     }
 
     return beatmap;
-};
-
-// Floating Circle Component
-const FloatingCircle = ({ id, position, audioTime, appearTime, hitTime, onMiss, isHit }) => {
-    const [state, setState] = useState('appearing');
-    const APPEAR_DURATION = 2000;
-    const FALL_DURATION = 1000;
-
-    const timeSinceAppear = audioTime - appearTime;
-    const fallProgress = Math.max(0, Math.min(1, (timeSinceAppear - APPEAR_DURATION) / FALL_DURATION));
-    const isFalling = timeSinceAppear > APPEAR_DURATION;
-
-    useEffect(() => {
-        if (!isHit && state === 'falling' && fallProgress >= 1) {
-            setState('missed');
-            onMiss(id);
-        }
-    }, [fallProgress, state, id, onMiss, isHit]);
-
-    if (isHit) {
-        return null;
-    }
-
-    const positionStyle = {
-        'left': { left: '10%' },
-        'center-left': { left: '35%' },
-        'center-right': { left: '60%' },
-        'right': { right: '10%' },
-    }[position] || { left: '10%' };
-
-    return (
-        <>
-            {/* Empty Circle (appears first, static) */}
-            <div
-                className="floating-circle empty"
-                style={{
-                    ...positionStyle,
-                    bottom: '15%',
-                    opacity: state === 'appearing' || state === 'falling' ? 1 : 0,
-                    transform: `scale(${state === 'appearing' || state === 'falling' ? 1 : 0.8})`,
-                    transition: 'opacity 0.3s ease',
-                }}
-            >
-                <div className="circle-empty" />
-            </div>
-
-            {/* Full Circle (falls down) */}
-            {isFalling && state !== 'missed' && (
-                <div
-                    className="floating-circle full"
-                    style={{
-                        ...positionStyle,
-                        bottom: `${15 + fallProgress * 70}%`,
-                        opacity: Math.max(0, 1 - fallProgress * 0.3),
-                    }}
-                >
-                    <div className="circle-full" />
-                </div>
-            )}
-        </>
-    );
 };
 
 // Hit Feedback Component
@@ -157,7 +98,7 @@ const UnifiedRhythmGame = () => {
     const beatMapData = useMemo(() => generateBeatmapFromTempo(120, 60), []);
     const words = selectedText.split(/\s+/).filter(w => w.length > 0);
 
-    const KEY_MAP = { 'd': 'left', 'f': 'center-left', 'j': 'center-right', 'k': 'right' };
+    const KEY_MAP = { 'd': 0, 'f': 1, 'j': 2, 'k': 3 };
 
     // Audio sync
     useEffect(() => {
@@ -173,15 +114,21 @@ const UnifiedRhythmGame = () => {
                         beat.time >= currentTime - 500 &&
                         !circleHistory.has(beat.id)
                     ) {
-                        const newCircle = {
-                            id: beat.id,
-                            position: beat.position,
-                            keyHint: beat.keyHint,
-                            appearTime: beat.time,
-                            hitTime: beat.time + 2000,
-                        };
-                        setActiveCircles((prev) => [...prev, newCircle]);
-                        setCircleHistory((prev) => new Set(prev).add(beat.id));
+                        setCircleHistory((prev) => {
+                            const newHistory = new Set(prev);
+                            if (!newHistory.has(beat.id)) {
+                                newHistory.add(beat.id);
+                                const newCircle = {
+                                    id: beat.id,
+                                    position: beat.posIndex,
+                                    keyHint: beat.keyHint,
+                                    appearTime: beat.time,
+                                    hitTime: beat.time + 2000,
+                                };
+                                setActiveCircles((prevCircles) => [...prevCircles, newCircle]);
+                            }
+                            return newHistory;
+                        });
                     }
                 });
             }
@@ -202,14 +149,14 @@ const UnifiedRhythmGame = () => {
         if (gameState !== 'playing') return;
 
         const key = e.key.toLowerCase();
-        const position = KEY_MAP[key];
-        if (!position) return;
+        const posIndex = KEY_MAP[key];
+        if (posIndex === undefined) return;
 
         const HIT_WINDOW = 150;
 
         setActiveCircles((prevCircles) => {
             return prevCircles.filter((circle) => {
-                if (circle.position !== position) return true;
+                if (circle.position !== posIndex) return true;
                 if (hitCircles.has(circle.id)) return true;
 
                 const timeDiff = Math.abs(audioTime - circle.hitTime);
@@ -389,14 +336,16 @@ const UnifiedRhythmGame = () => {
                                 ))}
                             </div>
 
+                            {/* RhythmNote circles from osu folder */}
                             {activeCircles.map((circle) => (
-                                <FloatingCircle
+                                <RhythmNote
                                     key={circle.id}
                                     id={circle.id}
                                     position={circle.position}
-                                    audioTime={audioTime}
-                                    appearTime={circle.appearTime}
+                                    currentTime={audioTime}
                                     hitTime={circle.hitTime}
+                                    isHit={hitCircles.has(circle.id)}
+                                    onHit={() => {}}
                                     onMiss={() => {
                                         setTotalMisses((prevMisses) => {
                                             const newMisses = prevMisses + 1;
@@ -422,7 +371,6 @@ const UnifiedRhythmGame = () => {
                                             setFeedbackItems((p) => p.filter((f) => f.id !== feedbackId));
                                         }, 800);
                                     }}
-                                    isHit={hitCircles.has(circle.id)}
                                 />
                             ))}
                         </div>
