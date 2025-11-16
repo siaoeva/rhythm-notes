@@ -138,12 +138,12 @@ const OSUStyleRhythmGameDemo = () => {
   };
 
   return (
-    <div style={{ width: '100%', height: '100vh' }}>
+    <div style={{ width: '100%' }}>
       {/* BEATMAP SELECTOR (shown only on start screen) */}
       {!gameResults && (
         <div
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: 20,
             right: 20,
             zIndex: 50,
@@ -227,8 +227,8 @@ const OSUStyleRhythmGameDemo = () => {
       )}
 
       {/* GAME COMPONENT */}
-      <OSUStyleRhythmGame
-        songUrl="/default-song1.mp3" // Use any audio file or URL
+       <OSUStyleRhythmGame
+        songUrl="/default-song1.mp3"
         beatMapData={selectedBeatmap}
         onGameEnd={handleGameEnd}
       />

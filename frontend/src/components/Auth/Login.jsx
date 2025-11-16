@@ -62,13 +62,12 @@ const Login = () => {
                 </div>
                 <button type="submit" className="btn-submit">Login</button>
 
-{/*
+{/* */}
                 <div className="or">OR</div>
 
                 <button type="button" className="btn-google" onClick={handleGoogle}>
                     Continue with Google
                 </button>
-                */}
 
                 <p className="auth-link">Don't have an account? <a href="/register">Register</a></p>
             </form>

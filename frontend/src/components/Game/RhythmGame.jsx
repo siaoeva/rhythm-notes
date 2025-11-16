@@ -16,7 +16,7 @@ const RhythmGame = () => {
 
     // at least 6 sample texts, each game will pick one at random
     const SAMPLE_TEXTS = [
-        'The quick brown fox jumps over the lazy dog rhythm notes help you learn faster.',
+        'The quick brown fox jumps over the lazy dog and rhythm notes help you learn faster.',
         'In mitochondria the energy flows and enzymes catalyze reactions essential for life.',
         'Understanding data structures and algorithms improves problem solving and performance.',
         'Reactive components update the UI efficiently when state or props change asynchronously.',
@@ -69,19 +69,28 @@ const RhythmGame = () => {
     };
 
     const handleKeyPress = (e) => {
+        // don't interfere when user is typing in a real input/textarea or contenteditable
+        const tgt = e.target;
+        if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+
         if (!isPlaying) return;
         if (!selectedText) return;
 
         const text = selectedText;
         const char = e.key;
 
+        // prevent default (space scrolling) for keys we handle
+        if (char && char.length === 1 || e.code === 'Space') {
+            e.preventDefault();
+        }
+
         if (char === text[currentIndex]) {
             setTypingText(prev => prev + char);
             setCurrentIndex(prev => prev + 1);
             setCombo(prev => prev + 1);
             setScore(prev => prev + 10);
-        } else if (char === ' ' && text[currentIndex] === ' ') {
-            setTypingText(prev => prev + char);
+        } else if ((char === ' ' || e.code === 'Space') && text[currentIndex] === ' ') {
+            setTypingText(prev => prev + ' ');
             setCurrentIndex(prev => prev + 1);
             setCombo(prev => prev + 1);
             setScore(prev => prev + 10);
