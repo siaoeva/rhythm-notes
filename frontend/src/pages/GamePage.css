@@ -60,6 +60,22 @@
     animation: fadeIn 0.3s ease-in;
 }
 
+/* Support for fullscreen OSU game */
+.game-content-wrapper > div:first-child {
+    width: 100%;
+}
+
+/* Hide header/footer/tabs when OSU game is playing */
+.game-page:has(.osu-rhythm-game-container) {
+    padding: 0;
+    background: #0a0e27;
+}
+
+.game-page:has(.osu-rhythm-game-container) .game-header,
+.game-page:has(.osu-rhythm-game-container) .game-tabs {
+    display: none;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

@@ -1,0 +1,811 @@
+/**
+ * OSU-STYLE RHYTHM GAME ANIMATIONS & STYLING
+ * 
+ * This file contains all CSS for:
+ * - Falling circle animations
+ * - Hit/miss feedback animations
+ * - TypeRacer text scrolling
+ * - HUD styling
+ * - Responsive layout
+ */
+
+/* ============================================================================
+   ROOT & LAYOUT
+   ============================================================================ */
+
+.osu-rhythm-game-container {
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1628 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  overflow: hidden;
+}
+
+.osu-game-arena {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================================
+   SCREENS (START, PLAYING, END)
+   ============================================================================ */
+
+.osu-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.osu-start-screen,
+.osu-end-screen {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 29, 60, 0.95) 0%,
+    rgba(30, 50, 100, 0.95) 50%,
+    rgba(20, 29, 60, 0.95) 100%
+  );
+}
+
+.osu-screen-content {
+  text-align: center;
+  z-index: 10;
+  max-width: 600px;
+  padding: 2rem;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.osu-title {
+  font-size: 4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00d4ff, #0099ff, #6600ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 1rem 0;
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
+}
+
+.osu-subtitle {
+  font-size: 1.3rem;
+  color: #aabbdd;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   KEY GUIDE
+   ============================================================================ */
+
+.osu-keys-guide {
+  margin-bottom: 2rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 200, 255, 0.2);
+}
+
+.key-guide-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.key-guide-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.key-label {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: #000;
+  box-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+}
+
+.key-desc {
+  font-size: 0.85rem;
+  color: #aabbdd;
+}
+
+/* ============================================================================
+   BUTTONS
+   ============================================================================ */
+
+.osu-btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.osu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.osu-btn:active {
+  transform: translateY(0);
+}
+
+.osu-btn-primary {
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  color: #000;
+  font-weight: 900;
+}
+
+.osu-btn-primary:hover {
+  background: linear-gradient(135deg, #00e6ff, #00aaff);
+  box-shadow: 0 0 30px rgba(0, 200, 255, 0.6);
+}
+
+.osu-btn-secondary {
+  background: linear-gradient(135deg, #6600ff, #9933ff);
+  color: #fff;
+}
+
+.osu-btn-secondary:hover {
+  background: linear-gradient(135deg, #7722ff, #aa44ff);
+}
+
+.osu-btn-pause,
+.osu-btn-resume,
+.osu-btn-quit {
+  background: rgba(255, 100, 100, 0.8);
+  color: #fff;
+}
+
+.osu-btn-pause:hover,
+.osu-btn-resume:hover {
+  background: rgba(255, 150, 150, 1);
+}
+
+.osu-btn-quit:hover {
+  background: rgba(255, 50, 50, 1);
+  box-shadow: 0 0 20px rgba(255, 50, 50, 0.6);
+}
+
+/* ============================================================================
+   HUD (HEAD-UP DISPLAY)
+   ============================================================================ */
+
+.osu-hud-top {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 2px solid rgba(0, 200, 255, 0.2);
+}
+
+.osu-hud-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.osu-stat-label {
+  font-size: 0.9rem;
+  color: #6699bb;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.osu-stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+}
+
+.combo-active {
+  color: #ffff00 !important;
+  text-shadow: 0 0 15px rgba(255, 255, 0, 0.8) !important;
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   CIRCLES CONTAINER & LANES
+   ============================================================================ */
+
+.osu-circles-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.osu-lane {
+  position: relative;
+  border: 2px solid rgba(0, 200, 255, 0.2);
+  border-radius: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 100, 150, 0.1) 0%,
+    rgba(0, 50, 100, 0.05) 100%
+  );
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.osu-lane:hover {
+  border-color: rgba(0, 200, 255, 0.4);
+}
+
+/* Lane-specific colors */
+.lane-0 {
+  --lane-color: #ff0066;
+}
+
+.lane-1 {
+  --lane-color: #00ff99;
+}
+
+.lane-2 {
+  --lane-color: #00ccff;
+}
+
+.lane-3 {
+  --lane-color: #ffaa00;
+}
+
+/* ============================================================================
+   TARGET ZONE (Bottom of lane where circles should be hit)
+   ============================================================================ */
+
+.osu-target-zone {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 200, 255, 0) 0%,
+    rgba(0, 200, 255, 0.2) 100%
+  );
+  border-top: 3px dashed rgba(0, 200, 255, 0.3);
+  z-index: 5;
+}
+
+.target-ring {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 200, 255, 0.5);
+  border-radius: 50%;
+  position: absolute;
+  animation: targetPulse 1s infinite;
+}
+
+@keyframes targetPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+}
+
+.target-key {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: rgba(0, 200, 255, 0.6);
+  position: absolute;
+  z-index: 6;
+}
+
+/* ============================================================================
+   RHYTHM CIRCLES (Main game objects)
+   ============================================================================ */
+
+.rhythm-circle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.8rem;
+  z-index: 10;
+  transition: all 0.05s linear;
+}
+
+/* Lane-specific circle styles */
+.rhythm-circle-0 {
+  background: radial-gradient(circle at 30% 30%, #ff6699, #ff0066);
+  box-shadow: 0 0 20px rgba(255, 0, 100, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.rhythm-circle-1 {
+  background: radial-gradient(circle at 30% 30%, #33ffcc, #00ff99);
+  box-shadow: 0 0 20px rgba(0, 255, 150, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  color: #000;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.rhythm-circle-2 {
+  background: radial-gradient(circle at 30% 30%, #33ccff, #00ccff);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  color: #000;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.rhythm-circle-3 {
+  background: radial-gradient(circle at 30% 30%, #ffdd33, #ffaa00);
+  box-shadow: 0 0 20px rgba(255, 170, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  color: #000;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Circle inner parts */
+.circle-outer-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  animation: ringExpand 1s ease-out;
+}
+
+@keyframes ringExpand {
+  from {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.circle-key {
+  position: relative;
+  z-index: 2;
+  font-weight: 900;
+}
+
+.circle-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent);
+  z-index: 1;
+}
+
+/* HIT ANIMATION - Circle was hit correctly */
+.rhythm-circle.hit-animation {
+  animation: hitPop 0.4s ease-out forwards;
+}
+
+@keyframes hitPop {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* MISSED ANIMATION - Circle passed without being hit */
+.rhythm-circle.missed-animation {
+  animation: missPop 0.3s ease-out forwards;
+}
+
+@keyframes missPop {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   HIT FEEDBACK (Pop-up text after hitting circle)
+   ============================================================================ */
+
+.osu-feedback-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  z-index: 15;
+}
+
+.hit-feedback {
+  position: absolute;
+  font-size: 1.5rem;
+  font-weight: 900;
+  pointer-events: none;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.hit-feedback-perfect {
+  color: #ffff00;
+  text-shadow: 0 0 15px rgba(255, 255, 0, 1);
+}
+
+.hit-feedback-good {
+  color: #00ff99;
+  text-shadow: 0 0 15px rgba(0, 255, 150, 1);
+}
+
+.hit-feedback-miss {
+  color: #ff3366;
+  text-shadow: 0 0 15px rgba(255, 50, 100, 1);
+}
+
+/* Position hit feedback based on lane */
+.position-0 {
+  left: 12.5%;
+}
+
+.position-1 {
+  left: 37.5%;
+}
+
+.position-2 {
+  left: 62.5%;
+}
+
+.position-3 {
+  left: 87.5%;
+}
+
+@keyframes popAndFade {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+  100% {
+    transform: translateY(-50px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.feedback-score {
+  font-size: 1.2rem;
+  margin-top: 0.3rem;
+}
+
+/* ============================================================================
+   TYPERACER TEXT DISPLAY
+   ============================================================================ */
+
+.osu-typeracer-section {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1.5rem;
+  border-top: 2px solid rgba(0, 200, 255, 0.2);
+}
+
+.typeracer-display {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0, 200, 255, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1.3rem;
+  color: #aabbdd;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 2px;
+  line-height: 1.8;
+}
+
+.typeracer-text {
+  display: flex;
+  gap: 2px;
+}
+
+.typeracer-char {
+  transition: all 0.05s ease;
+  padding: 0.2rem 0.1rem;
+  border-radius: 3px;
+}
+
+.typeracer-char.typed {
+  color: #00ff99;
+  background: rgba(0, 255, 150, 0.1);
+  font-weight: 600;
+}
+
+.typeracer-char.current {
+  color: #ffff00;
+  background: rgba(255, 255, 0, 0.2);
+  font-weight: 900;
+  animation: typingBlink 0.8s infinite;
+}
+
+.typeracer-char.untyped {
+  color: #666999;
+}
+
+@keyframes typingBlink {
+  0%,
+  49% {
+    background: rgba(255, 255, 0, 0.2);
+  }
+  50%,
+  100% {
+    background: rgba(255, 255, 0, 0.5);
+  }
+}
+
+.typeracer-cursor {
+  position: absolute;
+  width: 3px;
+  height: 1.5rem;
+  background: #ffff00;
+  bottom: 1.7rem;
+  left: 1.5rem;
+  animation: cursorBlink 0.8s infinite;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+}
+
+@keyframes cursorBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.osu-typing-stats {
+  margin-top: 1rem;
+  text-align: center;
+  color: #6699bb;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* ============================================================================
+   CONTROLS
+   ============================================================================ */
+
+.osu-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================================
+   PAUSE OVERLAY
+   ============================================================================ */
+
+.osu-pause-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.osu-pause-content {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(20, 29, 60, 0.98), rgba(30, 50, 100, 0.98));
+  padding: 3rem;
+  border-radius: 20px;
+  border: 3px solid rgba(0, 200, 255, 0.3);
+  box-shadow: 0 0 50px rgba(0, 200, 255, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+.osu-pause-content h2 {
+  font-size: 3rem;
+  color: #ffff00;
+  margin: 0 0 2rem 0;
+  text-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+  letter-spacing: 2px;
+}
+
+.osu-pause-content button {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   RESULTS SCREEN
+   ============================================================================ */
+
+.osu-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 200, 255, 0.2);
+}
+
+.osu-result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.osu-result-label {
+  font-size: 0.95rem;
+  color: #6699bb;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.osu-result-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.osu-result-action {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+}
+
+.osu-result-action button {
+  flex: 1;
+  max-width: 300px;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+  .osu-title {
+    font-size: 2.5rem;
+  }
+
+  .osu-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .osu-stat-value {
+    font-size: 1.5rem;
+  }
+
+  .rhythm-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .typeracer-display {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .key-guide-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .osu-hud-top {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .osu-results-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

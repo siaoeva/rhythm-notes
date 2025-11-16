@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './GamePage.css';
+import OSUStyleRhythmGameDemo from '../components/Game/OSUStyleRhythmGameDemo';
 import RhythmGame from '../components/Game/RhythmGame';
 import GachaRewards from '../components/Game/GachaRewards';
 
@@ -15,6 +16,12 @@ const GamePage = () => {
 
             <div className="game-tabs">
                 <button
+                    className={`game-tab ${activeTab === 'osu' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('osu')}
+                >
+                    ◎ OSU Rhythm (NEW)
+                </button>
+                <button
                     className={`game-tab ${activeTab === 'game' ? 'active' : ''}`}
                     onClick={() => setActiveTab('game')}
                 >
@@ -29,6 +36,7 @@ const GamePage = () => {
             </div>
 
             <div className="game-content-wrapper">
+                {activeTab === 'osu' && <OSUStyleRhythmGameDemo />}
                 {activeTab === 'game' && <RhythmGame />}
                 {activeTab === 'gacha' && <GachaRewards />}
             </div>
