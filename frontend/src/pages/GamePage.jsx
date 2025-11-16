@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './GamePage.css';
-import OSUStyleRhythmGameDemo from '../components/Game/OSUStyleRhythmGameDemo';
-import RhythmGame from '../components/Game/RhythmGame';
+import UnifiedRhythmGame from '../components/Game/UnifiedRhythmGame';
 import GachaRewards from '../components/Game/GachaRewards';
 
 const GamePage = () => {
@@ -11,21 +10,15 @@ const GamePage = () => {
         <div className="game-page">
             <div className="game-header">
                 <h1>🎵 Rhythm Notes Game</h1>
-                <p className="game-subtitle">Type to the beat and earn rewards</p>
+                <p className="game-subtitle">Type to the beat and master your notes</p>
             </div>
 
             <div className="game-tabs">
                 <button
-                    className={`game-tab ${activeTab === 'osu' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('osu')}
-                >
-                    ⭕ OSU Rhythm Game
-                </button>
-                <button
                     className={`game-tab ${activeTab === 'game' ? 'active' : ''}`}
                     onClick={() => setActiveTab('game')}
                 >
-                    ⚡ Play Typeracer
+                    ⚡ Play Game
                 </button>
                 <button
                     className={`game-tab ${activeTab === 'gacha' ? 'active' : ''}`}
@@ -36,8 +29,7 @@ const GamePage = () => {
             </div>
 
             <div className="game-content-wrapper">
-                {activeTab === 'osu' && <OSUStyleRhythmGameDemo />}
-                {activeTab === 'game' && <RhythmGame />}
+                {activeTab === 'game' && <UnifiedRhythmGame />}
                 {activeTab === 'gacha' && <GachaRewards />}
             </div>
         </div>

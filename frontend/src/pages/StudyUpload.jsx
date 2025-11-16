@@ -30,17 +30,7 @@ const StudyUpload = () => {
         setIsLoading(true);
         // Simulate backend AI summary generation
         setTimeout(() => {
-            const newItem = {
-                id: uploadedItems.length + 1,
-                title: title,
-                type: file?.name?.split('.')?.pop() || 'txt',
-                date: new Date().toLocaleDateString(),
-                icon: '📄'
-            };
-            setUploadedItems([newItem, ...uploadedItems]);
-
-            // Placeholder AI summary from backend
-            setSummary({
+            const summaryData = {
                 title: title,
                 keyPoints: [
                     'Core concepts and fundamentals covered',
@@ -50,7 +40,19 @@ const StudyUpload = () => {
                 ],
                 wordCount: 1250,
                 estimatedReadTime: '5-7 min'
-            });
+            };
+
+            const newItem = {
+                id: uploadedItems.length + 1,
+                title: title,
+                summary: summaryData,
+                date: new Date().toLocaleDateString(),
+                icon: '📊'
+            };
+            setUploadedItems([newItem, ...uploadedItems]);
+
+            // Show AI summary
+            setSummary(summaryData);
 
             setIsLoading(false);
             setFile(null);
@@ -68,16 +70,7 @@ const StudyUpload = () => {
 
         setIsLoading(true);
         setTimeout(() => {
-            const newItem = {
-                id: uploadedItems.length + 1,
-                title: title,
-                type: 'text',
-                date: new Date().toLocaleDateString(),
-                icon: '📝'
-            };
-            setUploadedItems([newItem, ...uploadedItems]);
-
-            setSummary({
+            const summaryData = {
                 title: title,
                 keyPoints: [
                     'Main concepts extracted from your text',
@@ -87,13 +80,29 @@ const StudyUpload = () => {
                 ],
                 wordCount: textContent.split(' ').length,
                 estimatedReadTime: '3-5 min'
-            });
+            };
+
+            const newItem = {
+                id: uploadedItems.length + 1,
+                title: title,
+                summary: summaryData,
+                date: new Date().toLocaleDateString(),
+                icon: '📊'
+            };
+            setUploadedItems([newItem, ...uploadedItems]);
+
+            // Show AI summary
+            setSummary(summaryData);
 
             setIsLoading(false);
             setTitle('');
             setTextContent('');
             setActiveTab('text');
         }, 1200);
+    };
+
+    const handleSummaryClick = (item) => {
+        setSummary(item.summary);
     };
 
     return (
@@ -207,12 +216,17 @@ const StudyUpload = () => {
                         </div>
                         <div className="uploads-list">
                             {uploadedItems.map((item) => (
-                                <div key={item.id} className="upload-item">
+                                <div 
+                                    key={item.id} 
+                                    className="upload-item"
+                                    onClick={() => handleSummaryClick(item)}
+                                    style={{ cursor: 'pointer' }}
+                                >
                                     <div className="item-icon">{item.icon}</div>
                                     <div className="item-info">
                                         <div className="item-title">{item.title}</div>
                                         <div className="item-meta">
-                                            {item.type} • {item.date}
+                                            Summary • {item.date}
                                         </div>
                                     </div>
                                 </div>
@@ -239,7 +253,12 @@ const StudyUpload = () => {
                             </div>
                             <div className="summary-actions">
                                 <button className="action-btn secondary">📥 Download as PDF</button>
-                                <button className="action-btn primary">🃏 Generate Flashcards</button>
+                                <button
+                                    className="action-btn primary"
+                                    onClick={() => navigate('/notes')}
+                                >
+                                    🃏 Generate Flashcards
+                                </button>
                             </div>
                         </div>
                     </div>

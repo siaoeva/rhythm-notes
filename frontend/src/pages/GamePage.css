@@ -11,7 +11,8 @@
     padding: 2rem;
     border-radius: 12px;
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.6rem;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
 }
 
 .game-header h1 {
@@ -30,7 +31,7 @@
     display: flex;
     gap: 1rem;
     justify-content: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.6rem;
     flex-wrap: wrap;
 }
 
@@ -43,40 +44,50 @@
     cursor: pointer;
     font-weight: 700;
     transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .game-tab:hover {
     border-color: #7c3aed;
     color: #7c3aed;
+    transform: translateY(-2px);
 }
 
 .game-tab.active {
-    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    background: linear-gradient(90deg, #7c3aed, #06b6d4);
     color: white;
     border-color: transparent;
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
 }
 
 .game-content-wrapper {
     animation: fadeIn 0.3s ease-in;
 }
 
-/* Support for fullscreen OSU game */
-.game-content-wrapper > div:first-child {
-    width: 100%;
-}
-
-/* Hide header/footer/tabs when OSU game is playing */
-.game-page:has(.osu-rhythm-game-container) {
-    padding: 0;
-    background: #0a0e27;
-}
-
-.game-page:has(.osu-rhythm-game-container) .game-header,
-.game-page:has(.osu-rhythm-game-container) .game-tabs {
-    display: none;
-}
-
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .game-page {
+        padding: 1rem;
+    }
+
+    .game-header {
+        padding: 1.5rem;
+    }
+
+    .game-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .game-tabs {
+        gap: 0.5rem;
+    }
+
+    .game-tab {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
 }
