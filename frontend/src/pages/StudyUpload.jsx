@@ -359,12 +359,17 @@ const StudyUpload = () => {
                         </div>
                         <div className="uploads-list">
                             {uploadedItems.map((item) => (
-                                <div key={item.id} className="upload-item">
+                                <div 
+                                    key={item.id} 
+                                    className="upload-item"
+                                    onClick={() => handleSummaryClick(item)}
+                                    style={{ cursor: 'pointer' }}
+                                >
                                     <div className="item-icon">{item.icon}</div>
                                     <div className="item-info">
                                         <div className="item-title">{item.title}</div>
                                         <div className="item-meta">
-                                            {item.type} • {item.date}
+                                            Summary • {item.date}
                                         </div>
                                     </div>
                                 </div>
@@ -415,7 +420,12 @@ const StudyUpload = () => {
                             
                             <div className="summary-actions">
                                 <button className="action-btn secondary">📥 Download as PDF</button>
-                                <button className="action-btn primary">🃏 Generate Flashcards</button>
+                                <button
+                                    className="action-btn primary"
+                                    onClick={() => navigate('/notes')}
+                                >
+                                    🃏 Generate Flashcards
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -1,93 +1,138 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './UnifiedRhythmGame.css';
 
-// Placeholder summarized text from notes
 const PLACEHOLDER_TEXTS = [
-    'Proteins are polypeptides folded into 3D shapes that perform biological functions. The twenty amino acids combine through peptide bonds to create unique structures. Enzymatic proteins accelerate chemical reactions while structural proteins provide support. Understanding protein function requires analyzing their conformation and molecular recognition abilities.',
-    'Photosynthesis converts light energy into chemical energy through electron transport chains. Chlorophyll absorbs photons exciting electrons to higher energy states. The light dependent reactions produce ATP and NADPH in thylakoid membranes. Carbon fixation in the stroma uses these molecules to synthesize glucose molecules.',
-    'Data structures organize information efficiently for algorithms to process. Arrays provide fast random access but fixed size constraints. Linked lists offer dynamic allocation with slower sequential access patterns. Hash tables balance insertion deletion and lookup operations with optimal performance.',
-    'React components manage state through hooks enabling functional programming paradigms. useState tracks component variables triggering re-renders on changes. useEffect handles side effects after component mounts and updates. Context API provides global state management across component hierarchies.',
-    'Machine learning models learn patterns from training data to make predictions. Neural networks stack layers of interconnected neurons processing information. Backpropagation adjusts weights minimizing loss through gradient descent optimization. Overfitting occurs when models memorize training data failing on new examples.'
+    'Proteins are polypeptides folded into 3D shapes that perform biological functions. The twenty amino acids combine through peptide bonds to create unique structures.',
+    'Photosynthesis converts light energy into chemical energy through electron transport chains. Chlorophyll absorbs photons exciting electrons to higher energy states.',
+    'Data structures organize information efficiently for algorithms to process. Arrays provide fast random access but fixed size constraints.',
+    'React components manage state through hooks enabling functional programming paradigms. useState tracks component variables triggering re-renders on changes.',
+    'Machine learning models learn patterns from training data to make predictions. Neural networks stack layers of interconnected neurons processing information.'
 ];
 
-// Generate OSU-style beatmap from audio timing
+// Generate beatmap based on BPM - with unique keys
 const generateBeatmapFromTempo = (bpm = 120, durationSeconds = 60) => {
     const beatmap = [];
     const beatDuration = (60 / bpm) * 1000;
-    const keys = ['D', 'F', 'J', 'K'];
+    const positions = ['left', 'center-left', 'center-right', 'right'];
     let currentTime = 2000;
-    let keyIndex = 0;
+    let posIndex = 0;
+    let beatIndex = 0;
 
     while (currentTime < durationSeconds * 1000) {
         beatmap.push({
+            id: `beat-${beatIndex}-${currentTime}`, // Unique ID
             time: currentTime,
-            key: keys[keyIndex % 4],
-            text: `Beat ${keyIndex + 1}`,
+            position: positions[posIndex % 4],
+            keyHint: ['D', 'F', 'J', 'K'][posIndex % 4],
         });
         currentTime += beatDuration;
-        keyIndex++;
+        posIndex++;
+        beatIndex++;
     }
 
     return beatmap;
 };
 
-// Individual Rhythm Circle Component
-const RhythmCircle = ({ id, keyRequired, position, audioTime, startTime, onHit, onMiss }) => {
-    const [state, setState] = useState('falling');
-    const FALL_DURATION = 2000;
-    const DISAPPEAR_TIME = 300;
+// Floating Circle Component
+const FloatingCircle = ({ id, position, audioTime, appearTime, hitTime, onMiss, isHit }) => {
+    const [state, setState] = useState('appearing');
+    const APPEAR_DURATION = 2000;
+    const FALL_DURATION = 1000;
 
-    const timeSinceAppear = audioTime - startTime;
-    const progress = Math.min(1, Math.max(0, timeSinceAppear / FALL_DURATION));
+    const timeSinceAppear = audioTime - appearTime;
+    const fallProgress = Math.max(0, Math.min(1, (timeSinceAppear - APPEAR_DURATION) / FALL_DURATION));
+    const isFalling = timeSinceAppear > APPEAR_DURATION;
 
     useEffect(() => {
-        if (state === 'falling' && timeSinceAppear > FALL_DURATION + DISAPPEAR_TIME) {
+        if (!isHit && state === 'falling' && fallProgress >= 1) {
             setState('missed');
             onMiss(id);
         }
-    }, [timeSinceAppear, state, id, onMiss]);
+    }, [fallProgress, state, id, onMiss, isHit]);
 
-    const currentPos = -120 + progress * (75 - (-120));
-    const scale = Math.max(0.7, 1 - progress * 0.3);
+    if (isHit) {
+        return null;
+    }
+
+    const positionStyle = {
+        'left': { left: '10%' },
+        'center-left': { left: '35%' },
+        'center-right': { left: '60%' },
+        'right': { right: '10%' },
+    }[position] || { left: '10%' };
 
     return (
-        <div
-            className={`rhythm-circle rhythm-circle-${position} ${state === 'missed' ? 'missed' : ''}`}
-            style={{
-                top: `${currentPos}%`,
-                transform: `scale(${scale})`,
-                opacity: state === 'missed' ? 0 : 1,
-            }}
-        >
-            <div className="circle-outer-ring" />
-            <div className="circle-key">{keyRequired}</div>
-            <div className="circle-glow" />
-        </div>
+        <>
+            {/* Empty Circle (appears first, static) */}
+            <div
+                className="floating-circle empty"
+                style={{
+                    ...positionStyle,
+                    bottom: '15%',
+                    opacity: state === 'appearing' || state === 'falling' ? 1 : 0,
+                    transform: `scale(${state === 'appearing' || state === 'falling' ? 1 : 0.8})`,
+                    transition: 'opacity 0.3s ease',
+                }}
+            >
+                <div className="circle-empty" />
+            </div>
+
+            {/* Full Circle (falls down) */}
+            {isFalling && state !== 'missed' && (
+                <div
+                    className="floating-circle full"
+                    style={{
+                        ...positionStyle,
+                        bottom: `${15 + fallProgress * 70}%`,
+                        opacity: Math.max(0, 1 - fallProgress * 0.3),
+                    }}
+                >
+                    <div className="circle-full" />
+                </div>
+            )}
+        </>
     );
 };
 
 // Hit Feedback Component
-const HitFeedback = ({ type, position, score }) => {
+const HitFeedback = ({ type, position, wordsAdvanced }) => {
     const [visible, setVisible] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setVisible(false), 600);
+        const timer = setTimeout(() => setVisible(false), 800);
         return () => clearTimeout(timer);
     }, []);
 
+    const positionStyle = {
+        'left': { left: '10%' },
+        'center-left': { left: '35%' },
+        'center-right': { left: '60%' },
+        'right': { right: '10%' },
+    }[position] || { left: '10%' };
+
     return visible ? (
-        <div className={`hit-feedback hit-feedback-${type} position-${position}`}>
-            {type === 'perfect' && '◎ PERFECT!'}
-            {type === 'good' && '◯ GOOD!'}
-            {type === 'miss' && '✕ MISS'}
-            {score !== undefined && <div className="feedback-score">+{score}</div>}
+        <div
+            className={`hit-feedback hit-feedback-${type}`}
+            style={{
+                ...positionStyle,
+                bottom: '20%',
+            }}
+        >
+            <div className="feedback-text">
+                {type === 'perfect' && '◎ PERFECT!'}
+                {type === 'good' && '◯ GOOD!'}
+                {type === 'miss' && '✕ MISS'}
+            </div>
+            {wordsAdvanced > 0 && (
+                <div className="feedback-words">+{wordsAdvanced} word{wordsAdvanced > 1 ? 's' : ''}</div>
+            )}
         </div>
     ) : null;
 };
 
 // Main Unified Game Component
 const UnifiedRhythmGame = () => {
-    const [gameState, setGameState] = useState('ready'); // 'ready', 'playing', 'paused', 'ended'
+    const [gameState, setGameState] = useState('ready');
     const [score, setScore] = useState(0);
     const [combo, setCombo] = useState(0);
     const [maxCombo, setMaxCombo] = useState(0);
@@ -103,20 +148,16 @@ const UnifiedRhythmGame = () => {
     const [activeCircles, setActiveCircles] = useState([]);
     const [circleHistory, setCircleHistory] = useState(new Set());
     const [feedbackItems, setFeedbackItems] = useState([]);
+    const [hitCircles, setHitCircles] = useState(new Set());
 
     // TypeRacer state
     const [selectedText, setSelectedText] = useState(PLACEHOLDER_TEXTS[0]);
-    const [typedIndex, setTypedIndex] = useState(0);
-    const [textCorrect, setTextCorrect] = useState(0);
-    const [textMissed, setTextMissed] = useState(0);
+    const [wordIndex, setWordIndex] = useState(0);
 
-    // Beatmap
-    const beatMapData = generateBeatmapFromTempo(120, 60);
+    const beatMapData = useMemo(() => generateBeatmapFromTempo(120, 60), []);
+    const words = selectedText.split(/\s+/).filter(w => w.length > 0);
 
-    const KEY_MAP = { 'd': 0, 'f': 1, 'j': 2, 'k': 3 };
-    const POSITION_TO_KEY = { 0: 'D', 1: 'F', 2: 'J', 3: 'K' };
-
-    const getPositionFromKey = (key) => KEY_MAP[key.toLowerCase()] ?? 0;
+    const KEY_MAP = { 'd': 'left', 'f': 'center-left', 'j': 'center-right', 'k': 'right' };
 
     // Audio sync
     useEffect(() => {
@@ -125,22 +166,22 @@ const UnifiedRhythmGame = () => {
                 const currentTime = audioRef.current.currentTime * 1000;
                 setAudioTime(currentTime);
 
-                const LOOK_AHEAD = 1000;
+                const LOOK_AHEAD = 2500;
                 beatMapData.forEach((beat) => {
-                    const beatId = `beat-${beat.time}`;
                     if (
                         beat.time <= currentTime + LOOK_AHEAD &&
                         beat.time >= currentTime - 500 &&
-                        !circleHistory.has(beatId)
+                        !circleHistory.has(beat.id)
                     ) {
                         const newCircle = {
-                            id: beatId,
-                            key: beat.key,
-                            position: getPositionFromKey(beat.key),
-                            startTime: beat.time,
+                            id: beat.id,
+                            position: beat.position,
+                            keyHint: beat.keyHint,
+                            appearTime: beat.time,
+                            hitTime: beat.time + 2000,
                         };
                         setActiveCircles((prev) => [...prev, newCircle]);
-                        setCircleHistory((prev) => new Set(prev).add(beatId));
+                        setCircleHistory((prev) => new Set(prev).add(beat.id));
                     }
                 });
             }
@@ -161,26 +202,29 @@ const UnifiedRhythmGame = () => {
         if (gameState !== 'playing') return;
 
         const key = e.key.toLowerCase();
-        if (!KEY_MAP.hasOwnProperty(key)) return;
-
         const position = KEY_MAP[key];
+        if (!position) return;
+
         const HIT_WINDOW = 150;
-        let hitACircle = false;
 
         setActiveCircles((prevCircles) => {
             return prevCircles.filter((circle) => {
                 if (circle.position !== position) return true;
+                if (hitCircles.has(circle.id)) return true;
 
-                const timeDiff = Math.abs(audioTime - circle.startTime);
+                const timeDiff = Math.abs(audioTime - circle.hitTime);
 
                 if (timeDiff < HIT_WINDOW) {
-                    hitACircle = true;
+                    setHitCircles((prev) => new Set(prev).add(circle.id));
 
                     let hitType = 'good';
                     let scoreGain = 50;
+                    let wordsAdvanced = 1;
+
                     if (timeDiff < 50) {
                         hitType = 'perfect';
                         scoreGain = 100;
+                        wordsAdvanced = 2;
                     }
 
                     setScore((prev) => prev + scoreGain);
@@ -199,14 +243,16 @@ const UnifiedRhythmGame = () => {
                         return newHits;
                     });
 
-                    const feedbackId = `feedback-${Date.now()}-${Math.random()}`;
+                    setWordIndex((prev) => Math.min(prev + wordsAdvanced, words.length));
+
+                    const feedbackId = `feedback-${circle.id}-${Date.now()}`;
                     setFeedbackItems((prev) => [
                         ...prev,
-                        { id: feedbackId, type: hitType, position, score: scoreGain },
+                        { id: feedbackId, type: hitType, position: circle.position, wordsAdvanced },
                     ]);
                     setTimeout(() => {
                         setFeedbackItems((p) => p.filter((f) => f.id !== feedbackId));
-                    }, 600);
+                    }, 800);
 
                     return false;
                 }
@@ -214,25 +260,23 @@ const UnifiedRhythmGame = () => {
                 return true;
             });
         });
-
-        // TypeRacer typing
-        if (typedIndex < selectedText.length) {
-            const expectedChar = selectedText[typedIndex];
-            if (key === expectedChar.toLowerCase() || (expectedChar === ' ' && key === ' ')) {
-                setTypedIndex((prev) => prev + 1);
-                setTextCorrect((prev) => prev + 1);
-            } else if (!hitACircle) {
-                setTextMissed((prev) => prev + 1);
-            }
-        }
     };
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [audioTime, gameState, typedIndex, selectedText, totalHits, totalMisses]);
+    }, [audioTime, gameState, wordIndex, words.length, totalHits, totalMisses, hitCircles]);
 
-    // Game controls
+    // Clean up old circles
+    useEffect(() => {
+        setActiveCircles((prev) =>
+            prev.filter((circle) => {
+                const timeSinceHit = audioTime - circle.hitTime;
+                return timeSinceHit < 1500;
+            })
+        );
+    }, [audioTime]);
+
     const startGame = () => {
         const randomText = PLACEHOLDER_TEXTS[Math.floor(Math.random() * PLACEHOLDER_TEXTS.length)];
         setSelectedText(randomText);
@@ -249,11 +293,11 @@ const UnifiedRhythmGame = () => {
         setTotalHits(0);
         setTotalMisses(0);
         setAccuracy(100);
-        setTypedIndex(0);
-        setTextCorrect(0);
-        setTextMissed(0);
+        setWordIndex(0);
         setActiveCircles([]);
         setCircleHistory(new Set());
+        setHitCircles(new Set());
+        setFeedbackItems([]);
     };
 
     const pauseGame = () => {
@@ -275,15 +319,6 @@ const UnifiedRhythmGame = () => {
         setMaxCombo((prev) => Math.max(prev, combo));
     };
 
-    useEffect(() => {
-        setActiveCircles((prev) =>
-            prev.filter((circle) => {
-                const timePassed = audioTime - circle.startTime;
-                return timePassed < 2500;
-            })
-        );
-    }, [audioTime]);
-
     const handleAudioEnded = () => {
         endGame();
     };
@@ -291,18 +326,6 @@ const UnifiedRhythmGame = () => {
     const handleLoadedMetadata = () => {
         if (audioRef.current) setDuration(audioRef.current.duration);
     };
-
-    // TypeRacer display
-    const displayText = selectedText.split('').map((char, idx) => (
-        <span
-            key={idx}
-            className={`typeracer-char ${
-                idx < typedIndex ? 'typed' : idx === typedIndex ? 'current' : ''
-            }`}
-        >
-            {char === ' ' ? '·' : char}
-        </span>
-    ));
 
     return (
         <div className="unified-rhythm-game">
@@ -317,7 +340,7 @@ const UnifiedRhythmGame = () => {
                 <div className="game-start-overlay">
                     <div className="start-content">
                         <h2>Ready to Play?</h2>
-                        <p>Hit the circles and type the text to earn points!</p>
+                        <p>Click the circles to the beat and advance through the text!</p>
                         <button className="btn-start" onClick={startGame}>
                             START GAME
                         </button>
@@ -330,7 +353,6 @@ const UnifiedRhythmGame = () => {
 
             {(gameState === 'playing' || gameState === 'paused') && (
                 <>
-                    {/* HUD */}
                     <div className="game-hud">
                         <div className="hud-stat">
                             <span className="hud-label">Score</span>
@@ -339,7 +361,7 @@ const UnifiedRhythmGame = () => {
                         <div className="hud-stat">
                             <span className="hud-label">Combo</span>
                             <span className={`hud-value ${combo > 0 ? 'active-combo' : ''}`}>
-                                {combo}
+                                {combo}x
                             </span>
                         </div>
                         <div className="hud-stat">
@@ -354,88 +376,74 @@ const UnifiedRhythmGame = () => {
                         </div>
                     </div>
 
-                    {/* OSU Game Section (Top Half) */}
                     <div className="osu-section">
-                        <div className="circles-container">
-                            {[0, 1, 2, 3].map((position) => (
-                                <div key={position} className={`lane lane-${position}`}>
-                                    <div className="target-zone">
-                                        <div className="target-ring" />
-                                        <span className="target-key">{POSITION_TO_KEY[position]}</span>
-                                    </div>
-
-                                    {activeCircles
-                                        .filter((c) => c.position === position)
-                                        .map((circle) => (
-                                            <RhythmCircle
-                                                key={circle.id}
-                                                id={circle.id}
-                                                keyRequired={circle.key}
-                                                position={circle.position}
-                                                audioTime={audioTime}
-                                                startTime={circle.startTime}
-                                                onHit={() => {}}
-                                                onMiss={(id) => {
-                                                    setTotalMisses((prevMisses) => {
-                                                        const newMisses = prevMisses + 1;
-                                                        setAccuracy((_) => {
-                                                            const denom = totalHits + newMisses;
-                                                            return denom > 0
-                                                                ? (totalHits / denom) * 100
-                                                                : 0;
-                                                        });
-                                                        return newMisses;
-                                                    });
-
-                                                    setCombo(0);
-
-                                                    const feedbackId = `feedback-miss-${Date.now()}-${Math.random()}`;
-                                                    setFeedbackItems((prev) => [
-                                                        ...prev,
-                                                        {
-                                                            id: feedbackId,
-                                                            type: 'miss',
-                                                            position: circle.position,
-                                                            score: 0,
-                                                        },
-                                                    ]);
-                                                    setTimeout(() => {
-                                                        setFeedbackItems((p) =>
-                                                            p.filter((f) => f.id !== feedbackId)
-                                                        );
-                                                    }, 700);
-                                                }}
-                                            />
-                                        ))}
-                                </div>
-                            ))}
-
-                            {/* Feedback */}
+                        <div className="circles-play-area">
                             <div className="feedback-container">
                                 {feedbackItems.map((feedback) => (
                                     <HitFeedback
                                         key={feedback.id}
                                         type={feedback.type}
                                         position={feedback.position}
-                                        score={feedback.score}
+                                        wordsAdvanced={feedback.wordsAdvanced}
                                     />
                                 ))}
                             </div>
+
+                            {activeCircles.map((circle) => (
+                                <FloatingCircle
+                                    key={circle.id}
+                                    id={circle.id}
+                                    position={circle.position}
+                                    audioTime={audioTime}
+                                    appearTime={circle.appearTime}
+                                    hitTime={circle.hitTime}
+                                    onMiss={() => {
+                                        setTotalMisses((prevMisses) => {
+                                            const newMisses = prevMisses + 1;
+                                            setAccuracy((_) => {
+                                                const denom = totalHits + newMisses;
+                                                return denom > 0 ? (totalHits / denom) * 100 : 0;
+                                            });
+                                            return newMisses;
+                                        });
+                                        setCombo(0);
+
+                                        const feedbackId = `feedback-miss-${circle.id}`;
+                                        setFeedbackItems((prev) => [
+                                            ...prev,
+                                            {
+                                                id: feedbackId,
+                                                type: 'miss',
+                                                position: circle.position,
+                                                wordsAdvanced: 0,
+                                            },
+                                        ]);
+                                        setTimeout(() => {
+                                            setFeedbackItems((p) => p.filter((f) => f.id !== feedbackId));
+                                        }, 800);
+                                    }}
+                                    isHit={hitCircles.has(circle.id)}
+                                />
+                            ))}
                         </div>
                     </div>
 
-                    {/* TypeRacer Section (Bottom Half) */}
                     <div className="typeracer-section">
-                        <div className="typeracer-display">
-                            <div className="typeracer-text">{displayText}</div>
+                        <div className="words-display">
+                            {words.map((word, idx) => (
+                                <span key={idx} className={`word ${idx < wordIndex ? 'filled' : idx === wordIndex ? 'current' : ''}`}>
+                                    {word}
+                                </span>
+                            ))}
                         </div>
-                        <div className="typing-stats">
-                            <span>Typed: {textCorrect}</span>
-                            <span>Missed: {textMissed}</span>
+                        <div className="progress-bar-container">
+                            <div className="progress-bar-fill" style={{ width: `${words.length > 0 ? (wordIndex / words.length) * 100 : 0}%` }} />
+                        </div>
+                        <div className="typing-progress">
+                            {wordIndex} / {words.length} words
                         </div>
                     </div>
 
-                    {/* Controls */}
                     <div className="game-controls">
                         {gameState === 'playing' ? (
                             <button className="btn-control btn-pause" onClick={pauseGame}>
@@ -451,7 +459,6 @@ const UnifiedRhythmGame = () => {
                         </button>
                     </div>
 
-                    {/* Pause Overlay */}
                     {gameState === 'paused' && (
                         <div className="pause-overlay">
                             <div className="pause-content">
@@ -486,9 +493,9 @@ const UnifiedRhythmGame = () => {
                                 <span className="end-value">{accuracy.toFixed(1)}%</span>
                             </div>
                             <div className="end-stat">
-                                <span className="end-label">Hits / Misses</span>
+                                <span className="end-label">Words Completed</span>
                                 <span className="end-value">
-                                    {totalHits} / {totalMisses}
+                                    {wordIndex} / {words.length}
                                 </span>
                             </div>
                         </div>
