@@ -1,5 +1,4 @@
-#Tesseract
-import pytesseract
+
 import librosa
 from pytube import YouTube
 from pydub import AudioSegment
@@ -238,6 +237,9 @@ def wav_beat_tracking_from_bytes(mp3_bytes):
     beat_times = librosa.frames_to_time(beat_frames, sr=sr)
     
     return tempo, beat_times
+
+
+
 def beat_adjustment(tempo, beat_times, target_tempo=120.0):
     """
     Adjusts beat times to match a target tempo.
@@ -275,7 +277,8 @@ def beat_adjustment(tempo, beat_times, target_tempo=120.0):
         adjustment_factor = target_tempo / (tempo * 2)
         adjusted_beat_times = beat_times * adjustment_factor
         
-    return adjusted_beat_times
+    return adjusted_beat_times, adjustment_factor
+
 
 
 def test_google_cloud_vision():
