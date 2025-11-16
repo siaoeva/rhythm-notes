@@ -1,0 +1,55 @@
+.rhythm-note {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    transition: none;
+}
+
+.note-circle {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ff3366, #cc0055);
+    box-shadow: 0 0 30px rgba(255, 50, 100, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.note-inner {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent);
+    z-index: 2;
+}
+
+.note-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 3;
+    fill: none;
+    animation: ringExpand 1s infinite;
+}
+
+@keyframes ringExpand {
+    0% { transform: scale(0.7); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 0; }
+}
+
+.rhythm-note.missed {
+    animation: noteMissed 0.3s ease-out forwards;
+}
+
+@keyframes noteMissed {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.3); opacity: 0; }
+}

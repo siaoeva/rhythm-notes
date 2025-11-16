@@ -66,7 +66,7 @@
 .item-meta { color:#6b7280; font-size:0.75rem; }
 
 /* Main note card */
-.notes-main { min-height: 420px; }
+.notes-main { min-height: 420px; width: 100%; }
 .note-card { background:white; border-radius:12px; padding:1.5rem; border:1px solid #eef2ff; box-shadow:0 12px 40px rgba(99,102,241,0.04); }
 .note-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
 .note-actions { display:flex; gap:0.5rem; }
@@ -79,16 +79,6 @@
 
 /* Original content */
 .note-content { margin-top:1rem; background:#fff; padding:1rem; border-radius:8px; border:1px solid #f3f4f6; color:#374151; }
-
-/* Right column */
-.notes-right { background:white; border-radius:12px; padding:1rem; border:1px solid #eef2ff; box-shadow:0 8px 24px rgba(15,23,42,0.03); height: calc(100vh - 220px); overflow:auto; }
-.summarizer-card { margin-bottom:1rem; }
-.study-tools { margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem; }
-.tool-btn { background:#fbfbff; border:1px solid #e6eaf9; padding:0.6rem; border-radius:8px; cursor:pointer; }
-
-/* Recent */
-.recent-activity { margin-top:1rem; }
-.recent-activity ul { margin:0; padding-left:1rem; color:#374151; }
 
 /* Empty states */
 .empty-main { display:flex; align-items:center; justify-content:center; height:360px; background:linear-gradient(90deg,#fff,#fbfdff); border:1px dashed #eef2ff; border-radius:12px; color:#6b7280; }

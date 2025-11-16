@@ -352,30 +352,6 @@ const StudyUpload = () => {
                         )}
                     </div>
 
-                    <aside className="sidebar">
-                        <div className="sidebar-header">
-                            <h3>Previous Uploads</h3>
-                            <span className="badge">{uploadedItems.length}</span>
-                        </div>
-                        <div className="uploads-list">
-                            {uploadedItems.map((item) => (
-                                <div 
-                                    key={item.id} 
-                                    className="upload-item"
-                                    onClick={() => handleSummaryClick(item)}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    <div className="item-icon">{item.icon}</div>
-                                    <div className="item-info">
-                                        <div className="item-title">{item.title}</div>
-                                        <div className="item-meta">
-                                            Summary • {item.date}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </aside>
                 </div>
 
                 {summary ? (
