@@ -3,3 +3,4 @@ backend/roasting-474116-bd6691203eee.json
 backend/.venv/
 backend/ffmpeg/
 backend/ffmpeg.zip
+node_modules
