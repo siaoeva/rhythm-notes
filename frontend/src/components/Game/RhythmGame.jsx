@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RhythmGame.css';
 
+// ...existing code...
 const RhythmGame = () => {
     const [score, setScore] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -10,10 +11,19 @@ const RhythmGame = () => {
     const [gameStarted, setGameStarted] = useState(false);
     const [typingText, setTypingText] = useState('');
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [selectedText, setSelectedText] = useState('');
     const audioRef = useRef(null);
 
-    const sampleText = 'The quick brown fox jumps over the lazy dog rhythm notes help you learn faster';
-    const words = sampleText.split(' ');
+    // at least 6 sample texts, each game will pick one at random
+    const SAMPLE_TEXTS = [
+        'The quick brown fox jumps over the lazy dog rhythm notes help you learn faster.',
+        'In mitochondria the energy flows and enzymes catalyze reactions essential for life.',
+        'Understanding data structures and algorithms improves problem solving and performance.',
+        'Reactive components update the UI efficiently when state or props change asynchronously.',
+        'Photosynthesis converts sunlight into chemical energy stored in sugars and oxygen released.',
+        'Classes encapsulate behavior and state, enabling modular and reusable code design patterns.',
+        'Proteins are chains of amino acids folded into shapes that determine biological function.'
+    ];
 
     useEffect(() => {
         let interval = null;
@@ -27,7 +37,14 @@ const RhythmGame = () => {
         return () => clearInterval(interval);
     }, [isPlaying, timer]);
 
+    const pickRandomText = () => {
+        const idx = Math.floor(Math.random() * SAMPLE_TEXTS.length);
+        return SAMPLE_TEXTS[idx];
+    };
+
     const startGame = () => {
+        const textToType = pickRandomText();
+        setSelectedText(textToType);
         setScore(0);
         setCombo(0);
         setTimer(60);
@@ -37,7 +54,8 @@ const RhythmGame = () => {
         setCurrentIndex(0);
         setAccuracy(100);
         if (audioRef.current) {
-            audioRef.current.play();
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(() => {});
         }
     };
 
@@ -52,8 +70,9 @@ const RhythmGame = () => {
 
     const handleKeyPress = (e) => {
         if (!isPlaying) return;
+        if (!selectedText) return;
 
-        const text = sampleText;
+        const text = selectedText;
         const char = e.key;
 
         if (char === text[currentIndex]) {
@@ -75,9 +94,9 @@ const RhythmGame = () => {
     useEffect(() => {
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [currentIndex, isPlaying]);
+    }, [currentIndex, isPlaying, selectedText]);
 
-    const displayText = sampleText.split('').map((char, idx) => (
+    const displayText = (selectedText || '').split('').map((char, idx) => (
         <span
             key={idx}
             className={`char ${idx < currentIndex ? 'typed' : idx === currentIndex ? 'current' : ''}`}
@@ -86,7 +105,11 @@ const RhythmGame = () => {
         </span>
     ));
 
-    const gaugeFill = (currentIndex / sampleText.length) * 100;
+    const gaugeFill = (selectedText ? (currentIndex / selectedText.length) * 100 : 0);
+
+    const wordsTyped = typingText.trim() ? typingText.trim().split(/\s+/).length : 0;
+    const elapsedSeconds = 60 - timer;
+    const wpm = elapsedSeconds > 0 ? Math.round((wordsTyped) / (elapsedSeconds / 60)) : 0;
 
     return (
         <div className="rhythm-game-container">
@@ -102,7 +125,7 @@ const RhythmGame = () => {
                                 START GAME
                             </button>
                             <div className="game-tips">
-                                <p>💡 Type the text as fast as you can to maximize your score</p>
+                                <p>💡 Each play uses a random passage — practice different texts each round.</p>
                                 <p>🎵 The audio will play automatically — sync with the beat!</p>
                             </div>
                         </div>
@@ -143,11 +166,11 @@ const RhythmGame = () => {
                         <div className="game-stats">
                             <div className="stat">
                                 <span className="stat-label">Words Typed</span>
-                                <span className="stat-value">{typingText.split(' ').length - 1}</span>
+                                <span className="stat-value">{wordsTyped}</span>
                             </div>
                             <div className="stat">
                                 <span className="stat-label">WPM</span>
-                                <span className="stat-value">{Math.round((typingText.split(' ').length - 1) / ((60 - timer) / 60))}</span>
+                                <span className="stat-value">{wpm}</span>
                             </div>
                             <div className="stat">
                                 <span className="stat-label">Chars Typed</span>

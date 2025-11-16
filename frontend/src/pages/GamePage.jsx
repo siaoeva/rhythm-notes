@@ -19,13 +19,13 @@ const GamePage = () => {
                     className={`game-tab ${activeTab === 'osu' ? 'active' : ''}`}
                     onClick={() => setActiveTab('osu')}
                 >
-                    ◎ OSU Rhythm (NEW)
+                    ⭕ OSU Rhythm Game
                 </button>
                 <button
                     className={`game-tab ${activeTab === 'game' ? 'active' : ''}`}
                     onClick={() => setActiveTab('game')}
                 >
-                    ⚡ Play Rhythm Game
+                    ⚡ Play Typeracer
                 </button>
                 <button
                     className={`game-tab ${activeTab === 'gacha' ? 'active' : ''}`}

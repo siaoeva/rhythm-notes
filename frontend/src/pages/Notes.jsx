@@ -3,7 +3,7 @@ import './Notes.css';
 import NoteList from '../components/Notes/NoteList';
 import NoteEditor from '../components/Notes/NoteEditor';
 import Summarizer from '../components/Notes/Summarizer';
-import Flashcards from '../components/Notes/Flashcards';
+import Flashcards, {DEFAULT_CARDS} from '../components/Notes/Flashcards';
 
 const Notes = () => {
   // sample / placeholder notes (replace with real backend data)
@@ -66,13 +66,7 @@ const Notes = () => {
   };
 
   const handleCreateFlashcards = (note) => {
-    // simulate backend AI flashcard generation (placeholder)
-    const cards = [
-      { q: 'Q: Key concept 1', a: 'A: Short answer 1' },
-      { q: 'Q: Key concept 2', a: 'A: Short answer 2' },
-      { q: 'Q: One-liner takeaway', a: 'A: Short takeaway' }
-    ];
-    setFlashcards({ noteId: note.id, cards });
+    setFlashcards({ noteId: note.id, cards: DEFAULT_CARDS.slice() });
     setShowFlashModal(true);
   };
 
@@ -89,7 +83,7 @@ const Notes = () => {
           <p className="subtitle">All uploaded notes, AI summaries, and study tools in one place.</p>
         </div>
         <div className="notes-actions">
-          <button className="btn-primary" onClick={() => setEditingNote(null)}>+ New Note</button>
+          <a className="btn-primary" href="/upload">+ New Note</a>
           <button className="btn-ghost" onClick={() => setShowSummarizer(v => !v)}>{showSummarizer ? 'Close Summarizer' : 'Open Summarizer'}</button>
         </div>
       </div>
@@ -192,11 +186,15 @@ const Notes = () => {
         </aside>
       </div>
 
-      {showFlashModal && flashcards && (
+       {showFlashModal && flashcards && (
         <div className="flash-modal">
           <div className="flash-dialog">
             <button className="close-x" onClick={() => setShowFlashModal(false)}>✕</button>
-            <Flashcards cards={flashcards.cards} noteTitle={notes.find(n => n.id === flashcards.noteId)?.title} />
+            <Flashcards
+              cards={flashcards.cards}
+              noteTitle={notes.find(n => n.id === flashcards.noteId)?.title}
+              onClose={() => setShowFlashModal(false)}
+            />
           </div>
         </div>
       )}

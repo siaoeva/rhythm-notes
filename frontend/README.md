@@ -204,8 +204,6 @@ Thank you for checking out the **Smart Note Summarizer & Organizer**! We hope yo
 ---
 ## Changes
 Frontend changes to make:
-Add proper game animations
-Improve the gacha section (i dont know much about gacha :pensive:)
 Add collaboration page
 Remove header from landing and auth pages
 Improve styling on notes page

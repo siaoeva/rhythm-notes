@@ -228,7 +228,7 @@ const OSUStyleRhythmGameDemo = () => {
 
       {/* GAME COMPONENT */}
       <OSUStyleRhythmGame
-        songUrl="/default-song.mp3" // Use any audio file or URL
+        songUrl="/default-song1.mp3" // Use any audio file or URL
         beatMapData={selectedBeatmap}
         onGameEnd={handleGameEnd}
       />

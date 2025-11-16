@@ -115,11 +115,11 @@
 }
 
 .flash-footer .btn-ghost {
-  background: transparent;
+  background: rgb(207, 32, 32);
   border: 1px solid #e6e6f7;
   padding: 0.6rem 1rem;
   border-radius: 8px;
-  color: #374151;
+  color: #ffffff;
 }
 
 /* responsive */

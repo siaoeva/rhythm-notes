@@ -30,7 +30,7 @@ const Register = () => {
     return (
         <div className="auth-container vibrant">
             <form onSubmit={handleSubmit} className="auth-form card">
-                <h2>Create account</h2>
+                <h2>Create account/Sign In</h2>
                 {error && <p className="error">{error}</p>}
                 <div className="form-row">
                     <label>Name</label>
@@ -73,11 +73,13 @@ const Register = () => {
                 </div>
                 <button type="submit" className="btn-submit">Register</button>
 
-                <div className="or">OR</div>
+
+               {/*<div className="or">OR</div>
 
                 <button type="button" className="btn-google" onClick={handleGoogle}>
                     Sign up with Google
                 </button>
+                */}
 
                 <p className="auth-link">Already have an account? <a href="/login">Login</a></p>
             </form>
